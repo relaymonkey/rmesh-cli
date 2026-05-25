@@ -9,8 +9,8 @@ MAIN := ./cmd/rmesh
 APP_VERSION ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(APP_VERSION)
 
-CONFIG ?= /etc/rmesh/config.yaml
-export RMESH_CONFIG ?= $(CONFIG)
+# Optional override for agent targets: make doctor CONFIG=/path/to/config.yaml
+CONFIG ?=
 
 .PHONY: help
 help:
@@ -28,11 +28,15 @@ help:
 	@echo "  make lint           golangci-lint run (if installed)"
 	@echo "  make clean          remove build artifacts"
 	@echo ""
-	@echo "  make doctor         rmesh doctor  (CONFIG=$(CONFIG))"
-	@echo "  make observe        rmesh observe (dry-run JSONL)"
-	@echo "  make run            rmesh run     (publish to MQTT)"
+	@echo "  make doctor         rmesh agent doctor  (platform default config)"
+	@echo "  make observe        rmesh agent observe (dry-run JSONL)"
+	@echo "  make run            rmesh agent run     (publish to MQTT)"
+	@echo "                      override: make doctor CONFIG=path/to/config.yaml"
 	@echo ""
 	@echo "  make ci             tidy + vet + test + build (local CI parity)"
+
+# rmesh_config_args expands to --config when CONFIG is set; otherwise the binary default applies.
+rmesh_config_args = $(if $(CONFIG),--config "$(CONFIG)",)
 
 .PHONY: build
 build:
@@ -84,13 +88,13 @@ clean:
 
 .PHONY: doctor observe run
 doctor: build
-	$(BINARY) --config "$(CONFIG)" doctor
+	$(BINARY) $(rmesh_config_args) agent doctor
 
 observe: build
-	$(BINARY) --config "$(CONFIG)" observe
+	$(BINARY) $(rmesh_config_args) agent observe
 
 run: build
-	$(BINARY) --config "$(CONFIG)" run
+	$(BINARY) $(rmesh_config_args) agent run
 
 .PHONY: ci
 ci: tidy vet test build

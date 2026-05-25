@@ -1,21 +1,34 @@
-# rmesh — RelayMesh edge agent
+# rmesh — RelayMesh CLI
 
-Public, Apache-2.0 edge daemon that connects to a local Meshtastic node via the **Phone API** and forwards traffic to RelayMesh over **MQTT only** — the same ingest path firmware gateways use.
+Public, Apache-2.0 CLI for RelayMesh edge services. The **agent** subcommand connects to a local Meshtastic node via the **Phone API** and forwards traffic to RelayMesh over **MQTT only** — the same ingest path firmware gateways use.
 
 ```
-Phone API (USB / BLE / TCP)  →  rmesh  →  EMQX  →  relaymesh-backend/cmd/ingest
+Phone API (USB / BLE / TCP)  →  rmesh agent  →  MQTT  →  RelayMesh backend
 ```
 
 ## Quick start
 
 ```bash
 make build
-cp config.example.yaml /etc/rmesh/config.yaml
-# Fill mqtt.* from RelayMesh → Credentials
+# Default config: ~/.rmesh/config.yaml (macOS) or /etc/rmesh/config.yaml (Linux)
+mkdir -p ~/.rmesh && cp config.example.yaml ~/.rmesh/config.yaml   # macOS
+rmesh config edit
+rmesh auth login
+rmesh auth status   # verify session (gh-style)
 
-make doctor
-make observe   # dry-run JSONL, no broker publish
-make run       # production
+make doctor    # rmesh agent doctor
+make observe   # dry-run JSONL
+make run       # publish to MQTT
+```
+
+### Local development
+
+Point at a local stack (Next.js proxy or direct backend + Kratos):
+
+```bash
+export RMESH_API_URL=http://localhost:3000    # or http://localhost:8090
+export RMESH_AUTH_URL=http://localhost:4433
+rmesh auth login
 ```
 
 Or install globally: `make install`

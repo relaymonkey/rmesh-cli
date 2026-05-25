@@ -214,6 +214,7 @@ func (a *runtime) handlePacket(ctx context.Context, packet *proto.MeshPacket, sy
 		return a.sink.Write(observe.Event{
 			Kind:         "packet",
 			IngestSource: source,
+			IngestLabels: a.cfg.Labels,
 			Topic:        topic,
 			GatewayID:    a.gatewayID,
 			From:         packet.GetFrom(),

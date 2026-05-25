@@ -30,7 +30,7 @@ var observeCmd = &cobra.Command{
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer cancel()
 
-		slog.Info("starting rmesh observe", "config", path, "agent_id", cfg.AgentID)
+		slog.Info("starting rmesh agent observe", "config", path, "agent_id", cfg.AgentID)
 		return shutdownErr(agent.Run(ctx, cfg, agent.Options{
 			Observe:      true,
 			ResetCadence: resetCadence,

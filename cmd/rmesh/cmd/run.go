@@ -28,7 +28,7 @@ var runCmd = &cobra.Command{
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer cancel()
 
-		slog.Info("starting rmesh run", "config", path, "agent_id", cfg.AgentID)
+		slog.Info("starting rmesh agent run", "config", path, "agent_id", cfg.AgentID)
 		return shutdownErr(agent.Run(ctx, cfg, agent.Options{
 			Observe:      false,
 			Verbose:      verbose,

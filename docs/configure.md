@@ -2,6 +2,30 @@
 
 See [`config.example.yaml`](../config.example.yaml) for a annotated starting point.
 
+## Environment
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `RMESH_CONFIG` | platform default (see below) | Agent config file path (also `--config`) |
+| `RMESH_API_URL` | `https://mesh.relaymonkey.com` | RelayMesh REST API origin (`/api/v1/...`) |
+| `RMESH_AUTH_URL` | `https://auth.relaymonkey.com` | Ory Kratos public URL for `rmesh auth login` |
+| `RMESH_SESSION_FILE` | `~/.rmesh/session.json` | Saved CLI session (mode `0600`; override path) |
+| `EDITOR` / `VISUAL` | `nano` | Used by `rmesh config edit` / `rmesh config -e` |
+
+Default paths when env vars are unset:
+
+| File | macOS | Linux / other |
+|---|---|---|
+| Agent config | `~/.rmesh/config.yaml` | `/etc/rmesh/config.yaml` |
+| CLI session | `~/.rmesh/session.json` | `~/.rmesh/session.json` |
+
+Local dev example:
+
+```bash
+export RMESH_API_URL=http://localhost:3000
+export RMESH_AUTH_URL=http://localhost:4433
+```
+
 ## Required fields
 
 | Field | Description |
@@ -30,10 +54,23 @@ Synthetic rows carry ingest source `edge:{agent_id}:nodedb` (passthrough uses `e
 ## Commands
 
 ```bash
-rmesh doctor    # validate config + USB/node connectivity
-rmesh observe   # JSONL dry-run, no MQTT
-rmesh run       # production publish
-rmesh pair      # future UI pairing (stub)
+rmesh config edit       # open config in $EDITOR
+rmesh config -e         # same (git-style shorthand)
+rmesh config edit --config ../config.example.yaml
+
+rmesh auth login        # sign in (prompts for email/password)
+rmesh auth status       # verify session (like gh auth status)
+rmesh auth whoami       # alias for auth status
+rmesh status            # same as auth status
+rmesh auth logout
+
+Native login stores a Kratos **session token** (`ory_st_*`) at `~/.rmesh/session.json`.
+The CLI sends it as `X-Session-Token` on API calls (not a browser cookie).
+
+rmesh agent doctor      # validate config + USB/node connectivity
+rmesh agent observe     # JSONL dry-run, no MQTT
+rmesh agent run         # production publish
+rmesh agent pair        # requires auth; cloud pairing API stub
 ```
 
 Spec: [RelayMesh-Edge README](https://github.com/relaymonkey/agent-specifications/tree/main/projects/RelayMesh-Edge)

@@ -21,10 +21,11 @@ func New(out io.Writer) *Sink {
 
 // Event is a serialised observation for observe mode.
 type Event struct {
-	At           time.Time `json:"at"`
-	Kind         string    `json:"kind"`
-	IngestSource string    `json:"ingest_source"`
-	Topic        string    `json:"topic"`
+	At           time.Time         `json:"at"`
+	Kind         string            `json:"kind"`
+	IngestSource string            `json:"ingest_source"`
+	IngestLabels map[string]string `json:"ingest_labels,omitempty"`
+	Topic        string            `json:"topic"`
 	GatewayID    string    `json:"gateway_id"`
 	From         uint32    `json:"from"`
 	To           uint32    `json:"to"`

@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/relaymonkey/relaymesh-edge/internal/config"
 )
 
 var (
@@ -20,28 +22,19 @@ func Execute() error {
 
 var rootCmd = &cobra.Command{
 	Use:   "rmesh",
-	Short: "RelayMesh edge agent — Phone API to MQTT gateway",
-	Long:  "rmesh connects to a local Meshtastic node and forwards observed packets to RelayMesh over MQTT.",
+	Short: "RelayMesh CLI",
+	Long:  "rmesh is the RelayMesh command-line tool. Use `rmesh agent` for the edge ingest daemon and other subcommands as they ship.",
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", configDefaultPath(), "path to config.yaml")
-
-	rootCmd.AddCommand(runCmd)
-	rootCmd.AddCommand(observeCmd)
-	rootCmd.AddCommand(doctorCmd)
-	rootCmd.AddCommand(pairCmd)
-
-	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "log each MQTT publish (topic, source, portnum)")
-	runCmd.Flags().BoolVar(&resetCadence, "reset-cadence", false, "force synthetic re-emission on next tick")
-	observeCmd.Flags().BoolVar(&resetCadence, "reset-cadence", false, "force synthetic re-emission on next tick")
 }
 
 func configDefaultPath() string {
 	if p := os.Getenv("RMESH_CONFIG"); p != "" {
 		return p
 	}
-	return "/etc/rmesh/config.yaml"
+	return config.DefaultPath()
 }
 
 func loadConfig() (cfgPath string, err error) {
