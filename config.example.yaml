@@ -1,0 +1,33 @@
+agent_id: oslo-pilot-000
+
+transport:
+  # url: serial:/dev/ttyUSB0
+  # url: serial:/dev/cu.Bluetooth-Incoming-Port
+  url: serial:/dev/cu.usbmodem1101
+
+mqtt:
+  broker_url: mqtt://mqtt.relaymonkey.com:1883
+  username: nw-aee465d7-hecy
+  password: K1Ggrqo5WsxY1Cw9BRdrBq7Rlx9_Og
+  topic_prefix: rm/n/2jmbr2rr
+
+labels:
+  contributor: alen.zubic@relaymonkey.com
+  site: oslo-majorstuen
+
+synthesise:
+  nodedb_poll: 5m
+  nodeinfo:
+    enabled: true
+    interval: 6h
+    on_first_seen: true
+    jitter: 10m
+  position:
+    enabled: true
+    interval: 30m
+    on_first_seen: true
+    respect_position_precision: true
+  mapreport:
+    enabled: true
+    interval: 6h
+    on_first_seen: false
