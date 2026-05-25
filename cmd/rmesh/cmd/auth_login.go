@@ -11,6 +11,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	"github.com/relaymonkey/relaymesh-edge/internal/session"
 )
 
@@ -23,11 +24,14 @@ var authLoginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Sign in to RelayMesh and save a session",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui := cliui.New(cmd.OutOrStdout())
 		email := authLoginEmail
 		password := authLoginPassword
 
 		if email == "" {
-			fmt.Fprint(cmd.OutOrStdout(), "Email: ")
+			if err := ui.Prompt("Email: "); err != nil {
+				return err
+			}
 			var err error
 			email, err = readLine()
 			if err != nil {
@@ -35,7 +39,9 @@ var authLoginCmd = &cobra.Command{
 			}
 		}
 		if password == "" {
-			fmt.Fprint(cmd.OutOrStdout(), "Password: ")
+			if err := ui.Prompt("Password: "); err != nil {
+				return err
+			}
 			b, err := term.ReadPassword(int(syscall.Stdin))
 			fmt.Fprintln(cmd.OutOrStdout())
 			if err != nil {
@@ -44,16 +50,21 @@ var authLoginCmd = &cobra.Command{
 			password = string(b)
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "API:  %s\n", cliconfig.APIURL())
-		fmt.Fprintf(cmd.OutOrStdout(), "Auth: %s\n", cliconfig.AuthURL())
+		if err := ui.Details(
+			cliui.Field{Key: "api", Value: cliconfig.APIURL()},
+			cliui.Field{Key: "auth", Value: cliconfig.AuthURL()},
+		); err != nil {
+			return err
+		}
 
 		saved, err := session.Login(context.Background(), email, password)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "logged in as %s\n", saved.Email)
-		fmt.Fprintln(cmd.OutOrStdout(), "run `rmesh auth status` to verify")
-		return nil
+		if err := ui.Success("Logged in · " + saved.Email); err != nil {
+			return err
+		}
+		return ui.Hint("rmesh auth status")
 	},
 }
 
@@ -64,8 +75,7 @@ var authLogoutCmd = &cobra.Command{
 		if err := session.Clear(); err != nil {
 			return err
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "logged out")
-		return nil
+		return cliui.New(cmd.OutOrStdout()).Success("Logged out")
 	},
 }
 

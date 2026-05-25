@@ -7,10 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	"github.com/relaymonkey/relaymesh-edge/internal/session"
 )
 
 func runAuthStatus(cmd *cobra.Command) error {
+	ui := cliui.New(cmd.OutOrStdout())
 	path, err := session.FilePath()
 	if err != nil {
 		return err
@@ -19,9 +21,8 @@ func runAuthStatus(cmd *cobra.Command) error {
 	saved, err := session.Load()
 	if err != nil {
 		if errors.Is(err, session.ErrNotLoggedIn) {
-			fmt.Fprintf(cmd.OutOrStdout(), "RelayMesh CLI: not logged in\n")
-			fmt.Fprintf(cmd.OutOrStdout(), "  session file: %s (missing)\n", path)
-			fmt.Fprintln(cmd.OutOrStdout(), "  run: rmesh auth login")
+			_ = ui.Fail("Not logged in", cliui.Field{Key: "session", Value: path + " (missing)"})
+			_ = ui.Hint("rmesh auth login")
 			return fmt.Errorf("not logged in")
 		}
 		return err
@@ -30,13 +31,14 @@ func runAuthStatus(cmd *cobra.Command) error {
 	client := apiclientFromSession(saved)
 	me, err := client.GetMe(context.Background())
 	if err != nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "RelayMesh CLI: session invalid\n")
-		fmt.Fprintf(cmd.OutOrStdout(), "  session file: %s\n", path)
-		fmt.Fprintf(cmd.OutOrStdout(), "  api:          %s\n", saved.APIURL)
-		fmt.Fprintf(cmd.OutOrStdout(), "  saved email:  %s\n", saved.Email)
-		fmt.Fprintf(cmd.OutOrStdout(), "  saved at:     %s\n", saved.SavedAt.Format("2006-01-02 15:04:05 UTC"))
-		fmt.Fprintf(cmd.OutOrStdout(), "  error:        %v\n", err)
-		fmt.Fprintln(cmd.OutOrStdout(), "  run: rmesh auth login")
+		_ = ui.Fail("Session invalid",
+			cliui.Field{Key: "session", Value: path},
+			cliui.Field{Key: "api", Value: saved.APIURL},
+			cliui.Field{Key: "email", Value: saved.Email},
+			cliui.Field{Key: "saved", Value: saved.SavedAt.Format("2006-01-02 15:04:05 UTC")},
+			cliui.Field{Key: "error", Value: err.Error()},
+		)
+		_ = ui.Hint("rmesh auth login")
 		return err
 	}
 
@@ -45,12 +47,14 @@ func runAuthStatus(cmd *cobra.Command) error {
 		email = saved.Email
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "RelayMesh CLI: logged in to %s as %s\n", saved.APIURL, email)
-	fmt.Fprintf(cmd.OutOrStdout(), "  session file: %s\n", path)
-	fmt.Fprintf(cmd.OutOrStdout(), "  auth:         %s\n", saved.AuthURL)
-	fmt.Fprintf(cmd.OutOrStdout(), "  user id:      %s\n", me.ID)
-	fmt.Fprintf(cmd.OutOrStdout(), "  saved at:     %s\n", saved.SavedAt.Format("2006-01-02 15:04:05 UTC"))
-	return nil
+	return ui.Status("Session · logged in",
+		cliui.Field{Key: "email", Value: email},
+		cliui.Field{Key: "user id", Value: me.ID},
+		cliui.Field{Key: "api", Value: saved.APIURL},
+		cliui.Field{Key: "auth", Value: saved.AuthURL},
+		cliui.Field{Key: "session", Value: path},
+		cliui.Field{Key: "saved", Value: saved.SavedAt.Format("2006-01-02 15:04:05 UTC")},
+	)
 }
 
 var authStatusCmd = &cobra.Command{

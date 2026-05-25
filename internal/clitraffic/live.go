@@ -8,6 +8,7 @@ import (
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
 	"github.com/relaymonkey/relaymesh-edge/internal/climessages"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 )
 
 // LiveInput holds live traffic stream options.
@@ -34,7 +35,10 @@ func Live(ctx context.Context, client apiclient.CloudClient, networkID string, i
 
 	return client.StreamLive(ctx, networkID,
 		func(hello map[string]any) {
-			fmt.Fprintf(errOut, "connected: network=%v server_ts=%v\n", hello["network_id"], hello["server_ts"])
+			_ = cliui.New(errOut).Stream("Live stream connected",
+				cliui.Field{Key: "network", Value: fmt.Sprint(hello["network_id"])},
+				cliui.Field{Key: "server", Value: fmt.Sprint(hello["server_ts"])},
+			)
 		},
 		func(env apiclient.MessageEnvelope) {
 			if in.TextOnly && !climessages.IsText(env) {

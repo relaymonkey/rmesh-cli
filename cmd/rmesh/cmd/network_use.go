@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/clidefault"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 )
 
 var networkUseCmd = &cobra.Command{
@@ -31,8 +31,12 @@ var networkUseCmd = &cobra.Command{
 		}); err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "default network: %s (%s)\n", n.Name, n.ID)
-		return nil
+		ui := cliui.New(cmd.OutOrStdout())
+		return ui.Success("Default network · "+n.Name,
+			cliui.Field{Key: "id", Value: n.ID},
+			cliui.Field{Key: "slug", Value: n.Slug},
+			cliui.Field{Key: "short_id", Value: n.ShortID},
+		)
 	},
 }
 
@@ -45,16 +49,17 @@ var networkCurrentCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "default network: %s\n", def.Name)
-		fmt.Fprintf(cmd.OutOrStdout(), "  id:        %s\n", def.NetworkID)
-		if def.Slug != "" {
-			fmt.Fprintf(cmd.OutOrStdout(), "  slug:      %s\n", def.Slug)
+		ui := cliui.New(cmd.OutOrStdout())
+		headline := "Default network · " + def.Name
+		if def.Name == "" {
+			headline = "Default network"
 		}
-		if def.ShortID != "" {
-			fmt.Fprintf(cmd.OutOrStdout(), "  short_id:  %s\n", def.ShortID)
-		}
-		fmt.Fprintf(cmd.OutOrStdout(), "  set at:    %s\n", def.SetAt.Format("2006-01-02 15:04:05 UTC"))
-		return nil
+		return ui.Status(headline,
+			cliui.Field{Key: "id", Value: def.NetworkID},
+			cliui.Field{Key: "slug", Value: def.Slug},
+			cliui.Field{Key: "short_id", Value: def.ShortID},
+			cliui.Field{Key: "set at", Value: def.SetAt.Format("2006-01-02 15:04:05 UTC")},
+		)
 	},
 }
 

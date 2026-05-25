@@ -38,6 +38,22 @@ make run       # publish to MQTT
 
 First-time agent setup: copy [`config.example.yaml`](../config.example.yaml) to the default config path — see [configure.md](configure.md) for platform paths and every config key.
 
+## CLI output conventions
+
+Two layers:
+
+| Layer | Package | When |
+|-------|---------|------|
+| **Data** | `internal/clioutput` | List/get commands with `-o table\|json\|yaml\|id` — machine-friendly rows |
+| **Messages** | `internal/cliui` | Success confirmations, status panels, hints, stream notices |
+
+Human messages use ✓ / ✗ / ● / → on TTY (plain `ok` / `error` / `->` when piped or `NO_COLOR` set). Example:
+
+```
+✓ Default network · EU
+  id · 742a055f-af02-4b99-a510-157ce0c34b9c
+```
+
 ## Shell tab completion (zsh)
 
 Add to the end of `~/.zshrc`:

@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 )
 
 var pairCmd = &cobra.Command{
@@ -23,17 +24,35 @@ var pairCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "signed in as %s\n", me.Email)
-		fmt.Fprintln(cmd.OutOrStdout(), "")
-		fmt.Fprintln(cmd.OutOrStdout(), "Cloud pairing API is not wired yet.")
-		fmt.Fprintln(cmd.OutOrStdout(), "")
-		fmt.Fprintln(cmd.OutOrStdout(), "Manual pairing for now:")
-		fmt.Fprintln(cmd.OutOrStdout(), "  1. Open your network in RelayMesh → Credentials → Issue MQTT credential")
-		fmt.Fprintln(cmd.OutOrStdout(), "  2. Copy broker_url, username, password, topic_prefix into config (rmesh config edit)")
-		fmt.Fprintln(cmd.OutOrStdout(), "  3. Run: rmesh agent doctor && rmesh agent observe")
-		fmt.Fprintln(cmd.OutOrStdout(), "  4. When satisfied: rmesh agent run")
+		ui := cliui.New(cmd.OutOrStdout())
+		if err := ui.Status("Signed in · "+me.Email); err != nil {
+			return err
+		}
+		if err := ui.Blank(); err != nil {
+			return err
+		}
+		if err := ui.Warn("Cloud pairing API is not wired yet."); err != nil {
+			return err
+		}
+		if err := ui.Blank(); err != nil {
+			return err
+		}
+		if err := ui.Line("Manual pairing for now:"); err != nil {
+			return err
+		}
+		if err := ui.Steps(
+			"Open your network in RelayMesh → Credentials → Issue MQTT credential",
+			"Copy broker_url, username, password, topic_prefix into config (rmesh config edit)",
+			"Run: rmesh agent doctor && rmesh agent observe",
+			"When satisfied: rmesh agent run",
+		); err != nil {
+			return err
+		}
 		if networkID != "" {
-			fmt.Fprintf(cmd.OutOrStdout(), "\n(network flag reserved for future API pairing: %s)\n", networkID)
+			if err := ui.Blank(); err != nil {
+				return err
+			}
+			return ui.Note("network flag reserved for future API pairing: " + networkID)
 		}
 		return nil
 	},

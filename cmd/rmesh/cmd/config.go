@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 )
 
 var configEditShort bool
@@ -39,8 +38,7 @@ func runConfigEdit(cmd *cobra.Command) error {
 	if err := cliconfig.EditAgentConfig(path); err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "edited %s\n", path)
-	return nil
+	return cliui.New(cmd.OutOrStdout()).Success("Config saved", cliui.Field{Key: "path", Value: path})
 }
 
 func init() {

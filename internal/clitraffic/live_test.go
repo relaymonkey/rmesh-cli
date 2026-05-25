@@ -31,7 +31,7 @@ func TestLiveTableOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(errOut.String(), "connected: network=net-1") {
+	if !strings.Contains(errOut.String(), "Live stream connected") {
 		t.Fatalf("stderr = %q", errOut.String())
 	}
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")

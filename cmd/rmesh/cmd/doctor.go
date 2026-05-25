@@ -9,6 +9,7 @@ import (
 	"github.com/exepirit/meshtastic-go/pkg/meshtastic"
 	"github.com/spf13/cobra"
 
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	"github.com/relaymonkey/relaymesh-edge/internal/config"
 	rmdevice "github.com/relaymonkey/relaymesh-edge/internal/device"
 	"github.com/relaymonkey/relaymesh-edge/internal/envelope"
@@ -20,73 +21,93 @@ var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Diagnose config, transport, and NodeDB connectivity",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ui := cliui.New(cmd.OutOrStdout())
+		errUI := cliui.New(cmd.ErrOrStderr())
+
 		path, err := loadConfig()
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "config: %v\n", err)
+			_ = errUI.Fail("Config load failed", cliui.Field{Key: "error", Value: err.Error()})
 			return err
 		}
 		cfg, err := config.Load(path)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "config validation: %v\n", err)
+			_ = errUI.Fail("Config invalid", cliui.Field{Key: "path", Value: path}, cliui.Field{Key: "error", Value: err.Error()})
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "config: ok (%s)\n", path)
-		fmt.Fprintf(cmd.OutOrStdout(), "  agent_id: %s\n", cfg.AgentID)
-		fmt.Fprintf(cmd.OutOrStdout(), "  transport: %s\n", cfg.Transport.URL)
-		if strings.Contains(cfg.Transport.URL, "Bluetooth-Incoming-Port") {
-			fmt.Fprintln(cmd.OutOrStdout(), "  warning: Bluetooth-Incoming-Port is not a Meshtastic device — use cu.usbmodem* or cu.usbserial*")
+		if err := ui.Success("Config",
+			cliui.Field{Key: "path", Value: path},
+			cliui.Field{Key: "agent", Value: cfg.AgentID},
+			cliui.Field{Key: "transport", Value: cfg.Transport.URL},
+			cliui.Field{Key: "mqtt", Value: cfg.MQTT.BrokerURL},
+			cliui.Field{Key: "topic", Value: cfg.MQTT.TopicPrefix},
+			cliui.Field{Key: "labels", Value: fmt.Sprintf("%d keys", len(cfg.Labels))},
+		); err != nil {
+			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "  mqtt broker: %s\n", cfg.MQTT.BrokerURL)
-		fmt.Fprintf(cmd.OutOrStdout(), "  mqtt topic_prefix: %s\n", cfg.MQTT.TopicPrefix)
-		fmt.Fprintf(cmd.OutOrStdout(), "  labels: %d keys\n", len(cfg.Labels))
+		if strings.Contains(cfg.Transport.URL, "Bluetooth-Incoming-Port") {
+			if err := ui.Warn("Bluetooth-Incoming-Port is not a Meshtastic device — use cu.usbmodem* or cu.usbserial*"); err != nil {
+				return err
+			}
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		transport, err := rmtransport.Open(cfg.Transport.URL)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "transport: %v\n", err)
+			_ = errUI.Fail("Transport failed", cliui.Field{Key: "error", Value: err.Error()})
 			return err
 		}
 		defer rmtransport.Close(transport)
 
 		if _, err := meshtastic.NewConfiguredDevice(ctx, transport); err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "device connect: %v\n", err)
+			_ = errUI.Fail("Device connect failed", cliui.Field{Key: "error", Value: err.Error()})
 			return err
 		}
 		state, err := rmdevice.GetState(ctx, transport)
 		if err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "device state: %v\n", err)
+			_ = errUI.Fail("Device state failed", cliui.Field{Key: "error", Value: err.Error()})
 			return err
 		}
 
 		gateway := gatewayFromState(state.DeviceState)
 		channel := envelope.PrimaryChannel(state.Channels, state.LoRa)
-		fmt.Fprintf(cmd.OutOrStdout(), "device: ok\n")
-		fmt.Fprintf(cmd.OutOrStdout(), "  gateway_id: %s\n", gateway)
-		fmt.Fprintf(cmd.OutOrStdout(), "  channel: %s (index %d)\n", channel.ChannelID, channel.Index)
-		if channel.Name == "" && state.LoRa != nil && !state.LoRa.GetUsePreset() {
-			fmt.Fprintln(cmd.OutOrStdout(), "  channel note: empty name + custom LoRa → Custom (matches firmware MQTT)")
+		deviceFields := []cliui.Field{
+			{Key: "gateway", Value: gateway},
+			{Key: "channel", Value: fmt.Sprintf("%s (index %d)", channel.ChannelID, channel.Index)},
+			{Key: "nodes", Value: fmt.Sprintf("%d in NodeDB", len(state.Nodes))},
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "  nodedb nodes: %d\n", len(state.Nodes))
+		if err := ui.Success("Device", deviceFields...); err != nil {
+			return err
+		}
+		if channel.Name == "" && state.LoRa != nil && !state.LoRa.GetUsePreset() {
+			if err := ui.Note("empty channel name + custom LoRa → Custom (matches firmware MQTT)"); err != nil {
+				return err
+			}
+		}
 
 		if len(state.Nodes) > 0 {
-			fmt.Fprintln(cmd.OutOrStdout(), "  sample nodes:")
+			if err := ui.Line("  sample nodes:"); err != nil {
+				return err
+			}
 			limit := 5
 			for i, n := range state.Nodes {
 				if i >= limit {
-					fmt.Fprintf(cmd.OutOrStdout(), "    ... and %d more\n", len(state.Nodes)-limit)
+					if err := ui.Note(fmt.Sprintf("… and %d more", len(state.Nodes)-limit)); err != nil {
+						return err
+					}
 					break
 				}
 				name := "?"
 				if n.User != nil {
 					name = strings.TrimSpace(n.User.ShortName + " / " + n.User.LongName)
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "    %s  %s\n", nodeid.FromNum(n.Num), name)
+				if err := ui.Line(fmt.Sprintf("    %s  %s", nodeid.FromNum(n.Num), name)); err != nil {
+					return err
+				}
 			}
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "doctor: all checks passed")
-		return nil
+		return ui.Success("All checks passed")
 	},
 }
 
