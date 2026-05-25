@@ -22,9 +22,19 @@ Default paths when env vars are unset:
 Local dev example:
 
 ```bash
-export RMESH_API_URL=http://localhost:3000
-export RMESH_AUTH_URL=http://localhost:4433
+eval "$(make dev-env)"   # RMESH_API_URL=http://localhost:8090, RMESH_AUTH_URL=http://localhost:4433
+# Next.js proxy: make dev-env DEV_API_URL=http://localhost:3000
 ```
+
+## Shell tab completion (zsh)
+
+Add to the end of `~/.zshrc`:
+
+```bash
+eval "$(rmesh completion zsh)"
+```
+
+Then `source ~/.zshrc`.
 
 ## Required fields
 
@@ -66,6 +76,10 @@ rmesh auth logout
 
 Native login stores a Kratos **session token** (`ory_st_*`) at `~/.rmesh/session.json`.
 The CLI sends it as `X-Session-Token` on API calls (not a browser cookie).
+
+rmesh network list      # networks you can access (alias: rmesh networks list)
+rmesh network list -o json
+rmesh network list -o id  # one UUID per line (scripting)
 
 rmesh agent doctor      # validate config + USB/node connectivity
 rmesh agent observe     # JSONL dry-run, no MQTT

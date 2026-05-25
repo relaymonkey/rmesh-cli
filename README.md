@@ -15,6 +15,7 @@ mkdir -p ~/.rmesh && cp config.example.yaml ~/.rmesh/config.yaml   # macOS
 rmesh config edit
 rmesh auth login
 rmesh auth status   # verify session (gh-style)
+rmesh network list  # list accessible networks (-o table|json|yaml|id)
 
 make doctor    # rmesh agent doctor
 make observe   # dry-run JSONL
@@ -23,15 +24,29 @@ make run       # publish to MQTT
 
 ### Local development
 
-Point at a local stack (Next.js proxy or direct backend + Kratos):
+With `relaymesh-backend` docker-compose running (API `:8090`, Kratos `:4433`):
 
 ```bash
-export RMESH_API_URL=http://localhost:3000    # or http://localhost:8090
-export RMESH_AUTH_URL=http://localhost:4433
+eval "$(make dev-env)"
 rmesh auth login
+rmesh network list
 ```
 
+Or open a subshell with env already set: `make dev-shell`
+
+Next.js proxy instead of direct backend: `make dev-env DEV_API_URL=http://localhost:3000`
+
 Or install globally: `make install`
+
+### Shell tab completion (zsh)
+
+Add to the end of `~/.zshrc`:
+
+```bash
+eval "$(rmesh completion zsh)"
+```
+
+Then `source ~/.zshrc`.
 
 ## What it does
 

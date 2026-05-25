@@ -12,12 +12,19 @@ LDFLAGS := -s -w -X main.version=$(APP_VERSION)
 # Optional override for agent targets: make doctor CONFIG=/path/to/config.yaml
 CONFIG ?=
 
+# Local stack defaults (relaymesh-backend docker-compose). Override on the make line:
+#   make dev-env DEV_API_URL=http://localhost:3000
+DEV_API_URL ?= http://localhost:8090
+DEV_AUTH_URL ?= http://localhost:4433
+
 .PHONY: help
 help:
 	@echo "relaymesh-edge (rmesh) — common targets:"
 	@echo ""
 	@echo "  make build          compile rmesh to $(BINARY)"
 	@echo "  make install        go install $(MAIN) (into \$$(go env GOPATH)/bin)"
+	@echo "  make dev-env        print export RMESH_* for local stack (see below)"
+	@echo "  make dev-shell      subshell with local RMESH_* already set"
 	@echo "  make test           run unit tests"
 	@echo "  make test-race      run tests with -race"
 	@echo "  make coverage       test coverage report (coverage.out)"
@@ -33,15 +40,33 @@ help:
 	@echo "  make run            rmesh agent run     (publish to MQTT)"
 	@echo "                      override: make doctor CONFIG=path/to/config.yaml"
 	@echo ""
+	@echo "  rmesh network list  list networks (-o table|json|yaml|id)"
+	@echo ""
 	@echo "  make ci             tidy + vet + test + build (local CI parity)"
+	@echo ""
+	@echo "  Local dev (backend on :8090, Kratos on :4433):"
+	@echo "    eval \"\$$(make dev-env)\""
+	@echo "    # or: make dev-shell"
 
-# rmesh_config_args expands to --config when CONFIG is set; otherwise the binary default applies.
+# Print export lines for eval in the current shell:
+#   eval "$(make dev-env)"
+.PHONY: dev-env
+dev-env:
+	@echo 'export RMESH_API_URL=$(DEV_API_URL)'
+	@echo 'export RMESH_AUTH_URL=$(DEV_AUTH_URL)'
+
+# Subshell with local RMESH_* set (does not change your parent shell).
+.PHONY: dev-shell
+dev-shell:
+	@env RMESH_API_URL="$(DEV_API_URL)" RMESH_AUTH_URL="$(DEV_AUTH_URL)" \
+		$${SHELL:-/bin/bash} -l
+
 rmesh_config_args = $(if $(CONFIG),--config "$(CONFIG)",)
 
 .PHONY: build
 build:
 	@mkdir -p $(BIN_DIR)
-	$(GO) build -ldflags="$(LDFLAGS)" -o $(BINARY) $(MAIN)
+	@$(GO) build -ldflags="$(LDFLAGS)" -o $(BINARY) $(MAIN)
 	@echo "built $(BINARY)"
 
 .PHONY: install
