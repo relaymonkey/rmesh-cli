@@ -20,8 +20,5 @@ func init() {
 		"output", "o", "table",
 		"Output format: table, json, yaml, id",
 	)
-	_ = networkCmd.RegisterFlagCompletionFunc("output", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"table", "json", "yaml", "id"}, cobra.ShellCompDirectiveNoFileComp
-	})
 	networkListCmd.SilenceUsage = true
 }

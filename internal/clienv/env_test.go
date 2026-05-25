@@ -25,3 +25,18 @@ func TestAuthURLOverride(t *testing.T) {
 		t.Fatalf("AuthURL() = %q", got)
 	}
 }
+
+func TestStreamURLLocalBackend(t *testing.T) {
+	t.Setenv(EnvStreamURL, "")
+	t.Setenv(EnvAPIURL, "http://localhost:8090")
+	if got := StreamURL(); got != "http://localhost:8091" {
+		t.Fatalf("StreamURL() = %q", got)
+	}
+	ws, err := LiveWSURL("net-uuid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ws != "ws://localhost:8091/api/v1/networks/net-uuid/live" {
+		t.Fatalf("LiveWSURL() = %q", ws)
+	}
+}

@@ -16,6 +16,8 @@ rmesh config edit
 rmesh auth login
 rmesh auth status   # verify session (gh-style)
 rmesh network list  # list accessible networks (-o table|json|yaml|id)
+rmesh network use <slug>   # set default for traffic commands
+rmesh traffic text         # text messages on default network
 
 make doctor    # rmesh agent doctor
 make observe   # dry-run JSONL
@@ -24,17 +26,12 @@ make run       # publish to MQTT
 
 ### Local development
 
-With `relaymesh-backend` docker-compose running (API `:8090`, Kratos `:4433`):
+With `relaymesh-backend` docker-compose running (API `:8090`, Kratos `:4433`), set in your shell:
 
 ```bash
-eval "$(make dev-env)"
-rmesh auth login
-rmesh network list
+export RMESH_API_URL=http://localhost:8090
+export RMESH_AUTH_URL=http://localhost:4433
 ```
-
-Or open a subshell with env already set: `make dev-shell`
-
-Next.js proxy instead of direct backend: `make dev-env DEV_API_URL=http://localhost:3000`
 
 Or install globally: `make install`
 
@@ -46,7 +43,7 @@ Add to the end of `~/.zshrc`:
 eval "$(rmesh completion zsh)"
 ```
 
-Then `source ~/.zshrc`.
+Then `source ~/.zshrc`. Re-run after upgrading rmesh so new subcommands and network autocomplete are registered.
 
 ## What it does
 

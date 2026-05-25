@@ -63,27 +63,6 @@ var authStatusCmd = &cobra.Command{
 	},
 }
 
-var authWhoamiCmd = &cobra.Command{
-	Use:     "whoami",
-	Aliases: []string{"me"},
-	Short:   "Print the current RelayMesh user (alias for auth status)",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runAuthStatus(cmd)
-	},
-}
-
-var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show CLI login status",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return runAuthStatus(cmd)
-	},
-}
-
 func init() {
-	rootCmd.AddCommand(statusCmd)
-	authCmd.AddCommand(authStatusCmd)
 	authStatusCmd.SilenceUsage = true
-	authWhoamiCmd.SilenceUsage = true
-	statusCmd.SilenceUsage = true
 }

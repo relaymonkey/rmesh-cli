@@ -44,8 +44,8 @@ var authLoginCmd = &cobra.Command{
 			password = string(b)
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "API:  %s (%s)\n", clienv.APIURL(), clienv.EnvAPIURL)
-		fmt.Fprintf(cmd.OutOrStdout(), "Auth: %s (%s)\n", clienv.AuthURL(), clienv.EnvAuthURL)
+		fmt.Fprintf(cmd.OutOrStdout(), "API:  %s\n", clienv.APIURL())
+		fmt.Fprintf(cmd.OutOrStdout(), "Auth: %s\n", clienv.AuthURL())
 
 		saved, err := session.Login(context.Background(), email, password)
 		if err != nil {

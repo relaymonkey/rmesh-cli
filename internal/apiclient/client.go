@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -42,14 +43,22 @@ type Me struct {
 // GetMe verifies the session against RelayMesh.
 func (c *Client) GetMe(ctx context.Context) (Me, error) {
 	var me Me
-	if err := c.getJSON(ctx, "/api/v1/me", &me); err != nil {
+	if err := c.getJSONQuery(ctx, "/api/v1/me", nil, &me); err != nil {
 		return Me{}, err
 	}
 	return me, nil
 }
 
-func (c *Client) getJSON(ctx context.Context, path string, dest any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+func (c *Client) getJSONQuery(ctx context.Context, path string, query url.Values, dest any) error {
+	u := c.baseURL + path
+	if len(query) > 0 {
+		u += "?" + query.Encode()
+	}
+	return c.getJSON(ctx, u, dest)
+}
+
+func (c *Client) getJSON(ctx context.Context, url string, dest any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
 	}
@@ -59,7 +68,7 @@ func (c *Client) getJSON(ctx context.Context, path string, dest any) error {
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("request %s: %w", path, err)
+		return fmt.Errorf("request %s: %w", url, err)
 	}
 	defer res.Body.Close()
 
@@ -68,10 +77,10 @@ func (c *Client) getJSON(ctx context.Context, path string, dest any) error {
 		return fmt.Errorf("session expired or invalid — run: rmesh auth login")
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("%s returned %s: %s", path, res.Status, strings.TrimSpace(string(body)))
+		return fmt.Errorf("%s returned %s: %s", url, res.Status, strings.TrimSpace(string(body)))
 	}
 	if err := json.Unmarshal(body, dest); err != nil {
-		return fmt.Errorf("decode %s: %w", path, err)
+		return fmt.Errorf("decode %s: %w", url, err)
 	}
 	return nil
 }
