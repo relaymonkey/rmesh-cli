@@ -33,7 +33,6 @@ These wrap `rmesh agent` using the platform default config path (override with `
 ```bash
 make doctor    # rmesh agent doctor
 make observe   # dry-run JSONL, no MQTT
-make run       # publish to MQTT
 ```
 
 First-time agent setup: copy [`config.example.yaml`](../config.example.yaml) to the default config path — see [configure.md](configure.md) for platform paths and every config key.

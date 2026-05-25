@@ -28,14 +28,8 @@ help:
 	@echo "  make vet            go vet ./..."
 	@echo "  make lint           golangci-lint run (if installed)"
 	@echo "  make clean          remove build artifacts"
-	@echo ""
 	@echo "  make doctor         rmesh agent doctor  (platform default config)"
 	@echo "  make observe        rmesh agent observe (dry-run JSONL)"
-	@echo "  make run            rmesh agent run     (publish to MQTT)"
-	@echo "                      override: make doctor CONFIG=path/to/config.yaml"
-	@echo ""
-	@echo "  rmesh network list  list networks (-o table|json|yaml|id)"
-	@echo ""
 	@echo "  make ci             tidy + vet + test + build (local CI parity)"
 
 rmesh_config_args = $(if $(CONFIG),--config "$(CONFIG)",)
@@ -93,15 +87,12 @@ lint:
 clean:
 	rm -rf $(BIN_DIR) coverage.out rmesh dist
 
-.PHONY: doctor observe run
+.PHONY: doctor observe
 doctor: build
 	$(BINARY) $(rmesh_config_args) agent doctor
 
 observe: build
 	$(BINARY) $(rmesh_config_args) agent observe
-
-run: build
-	$(BINARY) $(rmesh_config_args) agent run
 
 .PHONY: ci
 ci: tidy vet test build
