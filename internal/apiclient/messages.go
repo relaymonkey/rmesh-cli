@@ -14,22 +14,6 @@ type MessageList struct {
 	NextCursor *string           `json:"next_cursor"`
 }
 
-// MessageFieldDescriptor is one entry from GET /messages/fields (Traffic catalog).
-type MessageFieldDescriptor struct {
-	Name       string   `json:"name"`
-	Type       string   `json:"type"`
-	Kind       string   `json:"kind"`
-	Indexed    bool     `json:"indexed"`
-	AllowedOps []string `json:"allowed_ops"`
-	Sortable   bool     `json:"sortable"`
-	Coverage   float64  `json:"coverage"`
-}
-
-// MessageFieldCatalog is GET /api/v1/networks/{id}/messages/fields.
-type MessageFieldCatalog struct {
-	Fields []MessageFieldDescriptor `json:"fields"`
-}
-
 // ListMessagesQuery holds GET /messages query parameters (passed through raw).
 type ListMessagesQuery struct {
 	From            string

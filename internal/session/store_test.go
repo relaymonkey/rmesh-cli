@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 func TestSaveLoadClear(t *testing.T) {
@@ -45,7 +45,7 @@ func TestSaveLoadClear(t *testing.T) {
 
 func TestSessionPathDefault(t *testing.T) {
 	t.Setenv("RMESH_SESSION_FILE", "")
-	path, err := config.SessionPath()
+	path, err := cliconfig.SessionPath()
 	if err != nil {
 		t.Fatal(err)
 	}

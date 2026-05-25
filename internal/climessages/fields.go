@@ -8,6 +8,8 @@ import (
 )
 
 // DefaultListFields matches Traffic defaultColumnIds when --fields is omitted.
+// Canonical list: docs/traffic-columns.md (keep in sync with relaymesh-frontend
+// src/components/networks/traffic/columns.tsx defaultColumnIds).
 var DefaultListFields = []string{
 	"ingest_ts",
 	"source_node_id",
@@ -20,6 +22,7 @@ var DefaultListFields = []string{
 }
 
 // DefaultTextFields when --fields is omitted on traffic text.
+// Canonical list: docs/traffic-columns.md (keep in sync with Traffic text view).
 var DefaultTextFields = []string{
 	"ingest_ts",
 	"source_node_id",

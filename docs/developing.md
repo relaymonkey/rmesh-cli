@@ -8,10 +8,12 @@ Build from source, run against a local RelayMesh stack, and use Makefile shortcu
 make build          # bin/rmesh
 make install        # $(go env GOPATH)/bin/rmesh
 make test           # unit tests
+make coverage       # coverage.out + summary
 make ci             # tidy + vet + test + build
+make update-deps    # go get -u ./...
 ```
 
-Other targets: `make test-race`, `make coverage`, `make fmt`, `make vet`, `make lint`, `make clean`. Run `make help` for the full list.
+Other targets: `make test-race`, `make coverage-web`, `make fmt`, `make vet`, `make lint`, `make clean`. Run `make help` for the full list.
 
 ## Local RelayMesh stack
 
@@ -49,4 +51,5 @@ Then `source ~/.zshrc`. Re-run after upgrading rmesh. Dynamic completion (`netwo
 ## Related docs
 
 - [configure.md](configure.md) — config file, env vars, and command reference
+- [traffic-columns.md](traffic-columns.md) — Traffic default columns shared with the web UI
 - [RelayMesh-Edge spec](https://github.com/relaymonkey/agent-specifications/tree/main/projects/RelayMesh-Edge) — design decisions and cloud contract

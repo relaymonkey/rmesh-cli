@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 // Network is the saved default network for cloud CLI commands.
@@ -21,14 +21,7 @@ type Network struct {
 }
 
 func path() (string, error) {
-	if p := os.Getenv("RMESH_DEFAULT_NETWORK_FILE"); p != "" {
-		return p, nil
-	}
-	dir, err := config.UserDataDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "default-network.json"), nil
+	return cliconfig.DefaultNetworkPath()
 }
 
 // Load returns the saved default network.

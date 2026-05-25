@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 var configEditShort bool
@@ -34,9 +34,9 @@ var configEditCmd = &cobra.Command{
 func runConfigEdit(cmd *cobra.Command) error {
 	path := configPath
 	if path == "" {
-		path = config.DefaultPath()
+		path = cliconfig.AgentConfigPath()
 	}
-	if err := config.EditInTerminal(path); err != nil {
+	if err := cliconfig.EditAgentConfig(path); err != nil {
 		return err
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "edited %s\n", path)

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/clienv"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 	"github.com/relaymonkey/relaymesh-edge/internal/session"
 )
 
@@ -25,19 +25,13 @@ type Client struct {
 func New(sess session.Saved) *Client {
 	base := strings.TrimRight(sess.APIURL, "/")
 	if base == "" {
-		base = clienv.APIURL()
+		base = cliconfig.APIURL()
 	}
 	return &Client{
 		baseURL:      base,
 		sessionToken: sess.SessionToken,
 		http:         &http.Client{Timeout: 30 * time.Second},
 	}
-}
-
-// Me is the GET /api/v1/me response shape (subset).
-type Me struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
 }
 
 // GetMe verifies the session against RelayMesh.

@@ -8,7 +8,7 @@ import (
 
 	ory "github.com/ory/client-go"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/clienv"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 // Login performs a Kratos native (API) login and stores the session.
@@ -18,8 +18,8 @@ func Login(ctx context.Context, email, password string) (Saved, error) {
 		return Saved{}, fmt.Errorf("email and password are required")
 	}
 
-	authURL := clienv.AuthURL()
-	apiURL := clienv.APIURL()
+	authURL := cliconfig.AuthURL()
+	apiURL := cliconfig.APIURL()
 
 	client := ory.NewAPIClient(&ory.Configuration{
 		Servers: ory.ServerConfigurations{{URL: authURL}},

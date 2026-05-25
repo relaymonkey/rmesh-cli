@@ -1,4 +1,4 @@
-package config
+package cliconfig
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const minimalTemplate = `agent_id: local
+const minimalAgentConfigTemplate = `agent_id: local
 
 transport:
   url: serial:/dev/ttyUSB0
@@ -36,8 +36,8 @@ synthesise:
     interval: 6h
 `
 
-// EnsureFile creates path and parent dirs with a minimal template when missing.
-func EnsureFile(path string) error {
+// EnsureAgentConfigFile creates path and parent dirs with a minimal template when missing.
+func EnsureAgentConfigFile(path string) error {
 	if _, err := os.Stat(path); err == nil {
 		return nil
 	} else if !os.IsNotExist(err) {
@@ -46,24 +46,18 @@ func EnsureFile(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("mkdir config dir: %w", err)
 	}
-	if err := os.WriteFile(path, []byte(minimalTemplate), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(minimalAgentConfigTemplate), 0o600); err != nil {
 		return fmt.Errorf("create config: %w", err)
 	}
 	return nil
 }
 
-// EditInTerminal opens path in $EDITOR / $VISUAL (fallback: nano).
-func EditInTerminal(path string) error {
-	if err := EnsureFile(path); err != nil {
+// EditAgentConfig opens path in $EDITOR / $VISUAL (fallback: nano).
+func EditAgentConfig(path string) error {
+	if err := EnsureAgentConfigFile(path); err != nil {
 		return err
 	}
-	editor := strings.TrimSpace(os.Getenv("EDITOR"))
-	if editor == "" {
-		editor = strings.TrimSpace(os.Getenv("VISUAL"))
-	}
-	if editor == "" {
-		editor = "nano"
-	}
+	editor := Editor()
 	parts := strings.Fields(editor)
 	cmd := exec.Command(parts[0], append(parts[1:], path)...)
 	cmd.Stdin = os.Stdin

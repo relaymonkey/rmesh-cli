@@ -12,7 +12,7 @@ func apiclientFromSession(saved session.Saved) *apiclient.Client {
 	return apiclient.New(saved)
 }
 
-func requireSession() (session.Saved, *apiclient.Client, error) {
+func requireSession() (session.Saved, apiclient.CloudClient, error) {
 	saved, err := session.Load()
 	if err != nil {
 		if errors.Is(err, session.ErrNotLoggedIn) {

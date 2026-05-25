@@ -10,6 +10,7 @@ import (
 )
 
 // SummarizeDecoded mirrors the Traffic table Summary column (traffic-decoded-summary.ts).
+// Keep in sync: docs/traffic-columns.md.
 func SummarizeDecoded(raw apiclient.MessageEnvelope) string {
 	if len(raw) == 0 {
 		return ""

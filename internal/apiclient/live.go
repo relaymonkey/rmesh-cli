@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/clienv"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 // StreamLive connects to the network live WebSocket and invokes fn for each frame.
@@ -23,7 +23,7 @@ func (c *Client) StreamLive(
 	onHello func(map[string]any),
 	onMessage func(MessageEnvelope),
 ) error {
-	wsURL, err := clienv.LiveWSURL(networkID)
+	wsURL, err := cliconfig.LiveWSURL(networkID)
 	if err != nil {
 		return err
 	}

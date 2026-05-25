@@ -1,4 +1,4 @@
-package clienv
+package cliconfig
 
 import (
 	"os"
@@ -38,5 +38,35 @@ func TestStreamURLLocalBackend(t *testing.T) {
 	}
 	if ws != "ws://localhost:8091/api/v1/networks/net-uuid/live" {
 		t.Fatalf("LiveWSURL() = %q", ws)
+	}
+}
+
+func TestAgentConfigPathOverride(t *testing.T) {
+	t.Setenv(EnvAgentConfig, "/tmp/rmesh.yaml")
+	if got := AgentConfigPath(); got != "/tmp/rmesh.yaml" {
+		t.Fatalf("AgentConfigPath() = %q", got)
+	}
+}
+
+func TestSessionPathOverride(t *testing.T) {
+	t.Setenv(EnvSessionFile, "/tmp/session.json")
+	got, err := SessionPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "/tmp/session.json" {
+		t.Fatalf("SessionPath() = %q", got)
+	}
+}
+
+func TestEditorFallback(t *testing.T) {
+	t.Setenv("EDITOR", "")
+	t.Setenv("VISUAL", "")
+	if got := Editor(); got != "nano" {
+		t.Fatalf("Editor() = %q", got)
+	}
+	t.Setenv("EDITOR", "vim")
+	if got := Editor(); got != "vim" {
+		t.Fatalf("Editor() = %q", got)
 	}
 }

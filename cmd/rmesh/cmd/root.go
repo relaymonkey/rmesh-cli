@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 var (
@@ -27,14 +27,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configPath, "config", configDefaultPath(), "path to config.yaml")
-}
-
-func configDefaultPath() string {
-	if p := os.Getenv("RMESH_CONFIG"); p != "" {
-		return p
-	}
-	return config.DefaultPath()
+	rootCmd.PersistentFlags().StringVar(&configPath, "config", cliconfig.AgentConfigPath(), "path to config.yaml")
 }
 
 func loadConfig() (cfgPath string, err error) {

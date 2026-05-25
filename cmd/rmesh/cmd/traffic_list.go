@@ -2,17 +2,14 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spf13/cobra"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
+	"github.com/relaymonkey/relaymesh-edge/internal/clitraffic"
 	"github.com/relaymonkey/relaymesh-edge/internal/clioutput"
-	"github.com/relaymonkey/relaymesh-edge/internal/climessages"
 )
 
 var trafficListCmd = &cobra.Command{
@@ -87,48 +84,22 @@ func runTrafficList(cmd *cobra.Command, textOnly bool) error {
 		return err
 	}
 
-	fields, err := climessages.ParseFields(trafficFields, textOnly)
-	if err != nil {
-		return err
-	}
-
-	limit := trafficLimit
-	if limit <= 0 {
-		limit = climessages.DefaultLimit
-	}
-
-	filters := append([]string(nil), trafficFilters...)
-	if textOnly {
-		filters = append([]string{climessages.TextFilter}, filters...)
-	}
-
-	list, err := client.ListMessages(context.Background(), networkID, apiclient.ListMessagesQuery{
+	out, err := clitraffic.List(context.Background(), client, networkID, clitraffic.ListInput{
+		TextOnly:       textOnly,
 		From:           trafficFrom,
 		To:             trafficTo,
 		Q:              trafficQ,
-		Limit:          limit,
-		Filters:        filters,
-		NodeFilters:    append([]string(nil), trafficNodeFilters...),
-		GatewayFilters: append([]string(nil), trafficGatewayFilters...),
-	})
+		Filters:        trafficFilters,
+		NodeFilters:    trafficNodeFilters,
+		GatewayFilters: trafficGatewayFilters,
+		Limit:          trafficLimit,
+		FieldsRaw:      trafficFields,
+	}, format)
 	if err != nil {
 		return err
 	}
 
-	headers, rows := climessages.ProjectTable(list.Items, fields)
-	table := clioutput.Table{Headers: headers, Rows: rows}
-
-	ids := make([]string, len(list.Items))
-	for i, m := range list.Items {
-		ids[i] = m.StringField("id")
-	}
-
-	raw := any(list)
-	if format == clioutput.FormatJSON || format == clioutput.FormatYAML {
-		raw = climessages.ProjectJSON(list.Items, fields)
-	}
-
-	return clioutput.Render(cmd.OutOrStdout(), format, table, raw, ids)
+	return clioutput.Render(cmd.OutOrStdout(), format, out.Table, out.Raw, out.IDs)
 }
 
 func runTrafficLive(cmd *cobra.Command, textOnly bool) error {
@@ -141,34 +112,12 @@ func runTrafficLive(cmd *cobra.Command, textOnly bool) error {
 		return err
 	}
 
-	fields, err := climessages.ParseFields(trafficFields, textOnly)
-	if err != nil {
-		return err
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	enc := json.NewEncoder(cmd.OutOrStdout())
-	enc.SetIndent("", "  ")
-
-	return client.StreamLive(ctx, networkID,
-		func(hello map[string]any) {
-			fmt.Fprintf(cmd.ErrOrStderr(), "connected: network=%v server_ts=%v\n", hello["network_id"], hello["server_ts"])
-		},
-		func(env apiclient.MessageEnvelope) {
-			if textOnly && !climessages.IsText(env) {
-				return
-			}
-			out := trafficOutput
-			if out == "" {
-				out = "table"
-			}
-			if out == "json" {
-				_ = enc.Encode(climessages.ProjectJSON([]apiclient.MessageEnvelope{env}, fields)[0])
-				return
-			}
-			_, _ = fmt.Fprintln(cmd.OutOrStdout(), climessages.FormatLiveLine(env, fields))
-		},
-	)
+	return clitraffic.Live(ctx, client, networkID, clitraffic.LiveInput{
+		TextOnly:  textOnly,
+		FieldsRaw: trafficFields,
+		Output:    trafficOutput,
+	}, cmd.OutOrStdout(), cmd.ErrOrStderr())
 }

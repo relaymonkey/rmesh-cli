@@ -22,6 +22,7 @@ help:
 	@echo "  make test-race      run tests with -race"
 	@echo "  make coverage       test coverage report (coverage.out)"
 	@echo "  make coverage-web   coverage + open HTML report"
+	@echo "  make update-deps    go get -u ./... + go mod tidy"
 	@echo "  make tidy           go mod tidy"
 	@echo "  make fmt            gofmt all Go sources"
 	@echo "  make vet            go vet ./..."
@@ -65,6 +66,11 @@ coverage:
 .PHONY: coverage-web
 coverage-web: coverage
 	$(GO) tool cover -html=coverage.out
+
+.PHONY: update-deps
+update-deps:
+	$(GO) get -u ./...
+	$(GO) mod tidy
 
 .PHONY: tidy
 tidy:

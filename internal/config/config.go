@@ -15,8 +15,6 @@ const (
 	MaxLabelKeys     = 32
 	MaxLabelKeyLen   = 64
 	MaxLabelValueLen = 256
-	linuxDefaultPath = "/etc/rmesh/config.yaml"
-	macosConfigFile  = "config.yaml"
 )
 
 // Config is the on-disk agent configuration.

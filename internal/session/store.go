@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
 const sessionCookieName = "ory_kratos_session"
@@ -35,7 +35,7 @@ func (s Saved) CookieHeader() string {
 
 // FilePath returns the resolved session file path (for status output).
 func FilePath() (string, error) {
-	return config.SessionPath()
+	return cliconfig.SessionPath()
 }
 
 func legacyStorePath() (string, error) {
@@ -47,7 +47,7 @@ func legacyStorePath() (string, error) {
 }
 
 func storePath() (string, error) {
-	return config.SessionPath()
+	return cliconfig.SessionPath()
 }
 
 // Load reads the saved session. Returns ErrNotLoggedIn when absent.

@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/clienv"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 	"github.com/relaymonkey/relaymesh-edge/internal/session"
 )
 
@@ -44,8 +44,8 @@ var authLoginCmd = &cobra.Command{
 			password = string(b)
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "API:  %s\n", clienv.APIURL())
-		fmt.Fprintf(cmd.OutOrStdout(), "Auth: %s\n", clienv.AuthURL())
+		fmt.Fprintf(cmd.OutOrStdout(), "API:  %s\n", cliconfig.APIURL())
+		fmt.Fprintf(cmd.OutOrStdout(), "Auth: %s\n", cliconfig.AuthURL())
 
 		saved, err := session.Login(context.Background(), email, password)
 		if err != nil {
