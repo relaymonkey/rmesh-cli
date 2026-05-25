@@ -4,7 +4,7 @@ import "github.com/spf13/cobra"
 
 var agentCmd = &cobra.Command{
 	Use:   "agent",
-	Short: "Edge agent — Phone API to RelayMesh MQTT gateway",
+	Short: "Local node ingest — Phone API to RelayMesh MQTT",
 	Long:  "Connect to a local Meshtastic node and forward observed packets to RelayMesh.",
 }
 

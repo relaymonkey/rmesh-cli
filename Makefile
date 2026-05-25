@@ -1,4 +1,4 @@
-# relaymesh-edge — rmesh agent
+# relaymesh-edge — RelayMesh CLI (rmesh)
 
 SHELL := /bin/bash
 

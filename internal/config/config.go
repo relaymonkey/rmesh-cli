@@ -1,4 +1,4 @@
-// Package config loads and validates rmesh agent configuration.
+// Package config loads and validates configuration for the rmesh agent subcommand.
 package config
 
 import (

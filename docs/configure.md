@@ -6,7 +6,7 @@ See [`config.example.yaml`](../config.example.yaml) for a annotated starting poi
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `RMESH_CONFIG` | platform default (see below) | Agent config file path (also `--config`) |
+| `RMESH_CONFIG` | platform default (see below) | `rmesh agent` config file path (also `--config`) |
 | `RMESH_API_URL` | `https://mesh.relaymonkey.com` | RelayMesh REST API origin (`/api/v1/...`) |
 | `RMESH_AUTH_URL` | `https://auth.relaymonkey.com` | Ory Kratos public URL for `rmesh auth login` |
 | `RMESH_SESSION_FILE` | `~/.rmesh/session.json` | Saved CLI session (mode `0600`; override path) |
@@ -17,28 +17,13 @@ Default paths when env vars are unset:
 
 | File | macOS | Linux / other |
 |---|---|---|
-| Agent config | `~/.rmesh/config.yaml` | `/etc/rmesh/config.yaml` |
+| `rmesh agent` config | `~/.rmesh/config.yaml` | `/etc/rmesh/config.yaml` |
 | CLI session | `~/.rmesh/session.json` | `~/.rmesh/session.json` |
 | Default network | `~/.rmesh/default-network.json` | `~/.rmesh/default-network.json` |
 
 | `EDITOR` / `VISUAL` | `nano` | Used by `rmesh config edit` / `rmesh config -e` |
 
-Local dev — set in your shell before using `rmesh`:
-
-```bash
-export RMESH_API_URL=http://localhost:8090
-export RMESH_AUTH_URL=http://localhost:4433
-```
-
-## Shell tab completion (zsh)
-
-Add to the end of `~/.zshrc`:
-
-```bash
-eval "$(rmesh completion zsh)"
-```
-
-Then `source ~/.zshrc`. Re-run after upgrading rmesh. Dynamic completion (`network use`, `--network`) requires `rmesh auth login`.
+Local dev — see [developing.md](developing.md).
 
 ## Required fields
 
@@ -55,7 +40,7 @@ Free-form string map stamped on every publish via MQTT 5 user property `relaymes
 
 ## Synthesis cadence (`EDGE-D-08`)
 
-The agent synthesises standard `ServiceEnvelope` packets from local NodeDB for kinds the cloud cannot infer from RF-only ghosts:
+`rmesh agent` synthesises standard `ServiceEnvelope` packets from local NodeDB for kinds the cloud cannot infer from RF-only ghosts:
 
 - `nodeinfo` — `NODEINFO_APP`
 - `position` — `POSITION_APP`

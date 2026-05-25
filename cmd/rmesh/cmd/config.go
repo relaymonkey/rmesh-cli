@@ -12,7 +12,7 @@ var configEditShort bool
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage rmesh configuration",
+	Short: "Manage rmesh agent configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if configEditShort {
 			return runConfigEdit(cmd)

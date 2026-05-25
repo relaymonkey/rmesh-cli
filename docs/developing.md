@@ -1,0 +1,52 @@
+# Developing rmesh
+
+Build from source, run against a local RelayMesh stack, and use Makefile shortcuts for the `agent` subcommand.
+
+## Build and install
+
+```bash
+make build          # bin/rmesh
+make install        # $(go env GOPATH)/bin/rmesh
+make test           # unit tests
+make ci             # tidy + vet + test + build
+```
+
+Other targets: `make test-race`, `make coverage`, `make fmt`, `make vet`, `make lint`, `make clean`. Run `make help` for the full list.
+
+## Local RelayMesh stack
+
+With `relaymesh-backend` docker-compose running (API `:8090`, Kratos `:4433`):
+
+```bash
+export RMESH_API_URL=http://localhost:8090
+export RMESH_AUTH_URL=http://localhost:4433
+```
+
+`RMESH_STREAM_URL` defaults from `RMESH_API_URL` (`:8090` → `:8091`) for `traffic live`. Rebuild relaymesh-backend if live returns 401.
+
+## Agent subcommand (Makefile shortcuts)
+
+These wrap `rmesh agent` using the platform default config path (override with `make doctor CONFIG=/path/to/config.yaml`):
+
+```bash
+make doctor    # rmesh agent doctor
+make observe   # dry-run JSONL, no MQTT
+make run       # publish to MQTT
+```
+
+First-time agent setup: copy [`config.example.yaml`](../config.example.yaml) to the default config path — see [configure.md](configure.md) for platform paths and every config key.
+
+## Shell tab completion (zsh)
+
+Add to the end of `~/.zshrc`:
+
+```bash
+eval "$(rmesh completion zsh)"
+```
+
+Then `source ~/.zshrc`. Re-run after upgrading rmesh. Dynamic completion (`network use`, `--network`) requires `rmesh auth login`.
+
+## Related docs
+
+- [configure.md](configure.md) — config file, env vars, and command reference
+- [RelayMesh-Edge spec](https://github.com/relaymonkey/agent-specifications/tree/main/projects/RelayMesh-Edge) — design decisions and cloud contract
