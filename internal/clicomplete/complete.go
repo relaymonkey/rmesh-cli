@@ -11,7 +11,7 @@ package clicomplete
 //	clicomplete.RegisterArgs(myCmd, clicomplete.NetworksProvider)
 //
 // Add a new dynamic source by implementing Provider and wiring it from
-// cmd/rmesh/cmd/complete_register.go.
+// cmd/rmesh/cmd/zz_complete_register.go (must run after command flags exist).
 
 import (
 	"context"
@@ -52,9 +52,31 @@ func RegisterArgs(cmd *cobra.Command, provider Provider) {
 
 // RegisterFlag wires dynamic flag-value completion (e.g. --network).
 func RegisterFlag(cmd *cobra.Command, flagName string, provider Provider) {
-	_ = cmd.RegisterFlagCompletionFunc(flagName, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return runProvider(provider, toComplete)
+	RegisterFlagDirective(cmd, flagName, func(ctx context.Context, toComplete string) ([]Item, cobra.ShellCompDirective, error) {
+		items, err := provider(ctx, toComplete)
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError, err
+		}
+		return items, cobra.ShellCompDirectiveNoFileComp, nil
 	})
+}
+
+// DirectiveProvider loads completion candidates and chooses whether the
+// shell may fall through to file-path completion.
+type DirectiveProvider func(ctx context.Context, toComplete string) ([]Item, cobra.ShellCompDirective, error)
+
+// RegisterFlagDirective wires flag-value completion with an explicit
+// shell directive (e.g. allow file completion after `file:`).
+func RegisterFlagDirective(cmd *cobra.Command, flagName string, provider DirectiveProvider) {
+	if err := cmd.RegisterFlagCompletionFunc(flagName, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		items, directive, err := provider(context.Background(), toComplete)
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+		return formatItems(items), directive
+	}); err != nil {
+		panic(fmt.Sprintf("clicomplete: register %q on %q: %v", flagName, cmd.Name(), err))
+	}
 }
 
 func runProvider(provider Provider, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -62,6 +84,10 @@ func runProvider(provider Provider, toComplete string) ([]string, cobra.ShellCom
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
+	return formatItems(items), cobra.ShellCompDirectiveNoFileComp
+}
+
+func formatItems(items []Item) []string {
 	out := make([]string, len(items))
 	for i, it := range items {
 		if it.Description != "" {
@@ -70,7 +96,7 @@ func runProvider(provider Provider, toComplete string) ([]string, cobra.ShellCom
 			out[i] = it.Value
 		}
 	}
-	return out, cobra.ShellCompDirectiveNoFileComp
+	return out
 }
 
 // NetworksProvider completes network slug, short_id, UUID, and name.

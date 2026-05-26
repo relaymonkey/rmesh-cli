@@ -16,7 +16,7 @@ Add tab completion in zsh — put this in ~/.zshrc:
   eval "$(rmesh completion zsh)"
 
 Re-run after upgrading rmesh so new subcommands and dynamic completers
-(network list for "network use", --network, --fields) are picked up.
+(network list for "network use", --network, --fields, device config --from/--to) are picked up.
 
 Dynamic completion requires an active session (rmesh auth login).
 

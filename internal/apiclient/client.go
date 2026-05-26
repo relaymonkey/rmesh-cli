@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -52,28 +53,55 @@ func (c *Client) getJSONQuery(ctx context.Context, path string, query url.Values
 }
 
 func (c *Client) getJSON(ctx context.Context, url string, dest any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	return c.doJSON(ctx, http.MethodGet, url, nil, dest)
+}
+
+// PostJSON sends a JSON body and unmarshals the response into `dest`.
+// Empty body is allowed (pass nil).
+func (c *Client) PostJSON(ctx context.Context, path string, body, dest any) error {
+	return c.doJSON(ctx, http.MethodPost, c.baseURL+path, body, dest)
+}
+
+// doJSON is the shared HTTP plumbing for GET/POST/PATCH/etc.
+//
+// All RelayMesh endpoints today are JSON-in / JSON-out; we lean on
+// that uniformity rather than building a richer typed surface. dest
+// may be nil when the caller does not need to decode (204 responses
+// or fire-and-forget POSTs).
+func (c *Client) doJSON(ctx context.Context, method, url string, body, dest any) error {
+	var rdr io.Reader
+	if body != nil {
+		bs, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshal body: %w", err)
+		}
+		rdr = bytes.NewReader(bs)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, url, rdr)
 	if err != nil {
 		return err
 	}
-	// Native Kratos login returns a session token (ory_st_*), not a browser cookie.
 	req.Header.Set("X-Session-Token", c.sessionToken)
 	req.Header.Set("Accept", "application/json")
-
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	res, err := c.http.Do(req)
 	if err != nil {
 		return fmt.Errorf("request %s: %w", url, err)
 	}
 	defer res.Body.Close()
-
-	body, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	raw, _ := io.ReadAll(io.LimitReader(res.Body, 4<<20))
 	if res.StatusCode == http.StatusUnauthorized {
 		return fmt.Errorf("session expired or invalid — run: rmesh auth login")
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("%s returned %s: %s", url, res.Status, strings.TrimSpace(string(body)))
+		return fmt.Errorf("%s returned %s: %s", url, res.Status, strings.TrimSpace(string(raw)))
 	}
-	if err := json.Unmarshal(body, dest); err != nil {
+	if dest == nil || len(raw) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(raw, dest); err != nil {
 		return fmt.Errorf("decode %s: %w", url, err)
 	}
 	return nil

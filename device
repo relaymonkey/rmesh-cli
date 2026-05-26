@@ -1,0 +1,185 @@
+device-config (schema=1)  [region=EU_868, modem_preset=Custom]
+
+channels (8)
+  [0]
+    {
+      "role": "PRIMARY",
+      "settings": {
+        "downlink_enabled": true,
+        "module_settings": {},
+        "psk": "AQ==",
+        "uplink_enabled": true
+      }
+    }
+  [1]
+    {
+      "index": 1,
+      "role": "SECONDARY",
+      "settings": {
+        "downlink_enabled": true,
+        "name": "enterprise",
+        "psk": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
+        "uplink_enabled": true
+      }
+    }
+  [2]
+    {
+      "index": 2,
+      "settings": {
+        "downlink_enabled": true,
+        "module_settings": {},
+        "name": "Custom",
+        "psk": "AQ==",
+        "uplink_enabled": true
+      }
+    }
+  [3]
+    {
+      "index": 3,
+      "settings": {}
+    }
+  [4]
+    {
+      "index": 4,
+      "settings": {}
+    }
+  [5]
+    {
+      "index": 5,
+      "settings": {}
+    }
+  [6]
+    {
+      "index": 6,
+      "settings": {}
+    }
+  [7]
+    {
+      "index": 7,
+      "settings": {}
+    }
+
+config
+  lora
+    {
+      "bandwidth": 62,
+      "channel_num": 4,
+      "coding_rate": 5,
+      "config_ok_to_mqtt": true,
+      "hop_limit": 5,
+      "modem_preset": "LONG_SLOW",
+      "region": "EU_868",
+      "spread_factor": 8,
+      "sx126x_rx_boosted_gain": true,
+      "tx_enabled": true,
+      "tx_power": 20
+    }
+  device
+    {
+      "buzzer_gpio": 22,
+      "node_info_broadcast_secs": 2147483647,
+      "tzdef": "CET-1CEST,M3.5.0/2:00:00,M10.4.0/3:00:00"
+    }
+  position
+    {
+      "broadcast_smart_minimum_distance": 100,
+      "broadcast_smart_minimum_interval_secs": 30,
+      "gps_mode": "NOT_PRESENT",
+      "gps_update_interval": 30,
+      "position_broadcast_secs": 2147483647,
+      "position_flags": 1007
+    }
+  power
+    {
+      "ls_secs": 300,
+      "min_wake_secs": 10,
+      "sds_secs": 4294967295,
+      "wait_bluetooth_secs": 60
+    }
+  network
+    {
+      "ntp_server": "meshtastic.pool.ntp.org"
+    }
+  display
+    {
+      "compass_orientation": "DEGREES_270",
+      "screen_on_secs": 600
+    }
+  bluetooth
+    {
+      "enabled": true,
+      "fixed_pin": 3536,
+      "mode": "FIXED_PIN"
+    }
+  security
+    {
+      "private_key": "AD0/1UmoOKxHiHGwEEyMLoDPMYlLMqRCgLA6jWna5EI=",
+      "public_key": "/i84MG1ArWKPBJvY03xegi6UROsVEkzfeJgukVaj8Xw=",
+      "serial_enabled": true
+    }
+
+module_config
+  mqtt
+    {
+      "address": "mqtt.meshtastic.org",
+      "encryption_enabled": true,
+      "map_report_settings": {
+        "position_precision": 14,
+        "publish_interval_secs": 3600,
+        "should_report_location": true
+      },
+      "password": "large4cats",
+      "proxy_to_client_enabled": true,
+      "root": "msh/EU_868",
+      "username": "meshdev"
+    }
+  serial
+    {}
+  ext_notification
+    {
+      "alert_message": true,
+      "alert_message_buzzer": true,
+      "enabled": true,
+      "nag_timeout": 15,
+      "output": 36,
+      "output_buzzer": 22,
+      "output_ms": 1000,
+      "use_pwm": true
+    }
+  store_forward
+    {}
+  range_test
+    {}
+  telemetry
+    {
+      "device_update_interval": 2147483647
+    }
+  canned_message
+    {
+      "enabled": true
+    }
+  audio
+    {}
+  remote_hardware
+    {
+      "allow_undefined_pin_access": true
+    }
+  neighbor_info
+    {}
+  ambient_lighting
+    {
+      "blue": 61,
+      "current": 10,
+      "green": 78,
+      "red": 66
+    }
+  detection_sensor
+    {
+      "detection_trigger_type": "EITHER_EDGE_ACTIVE_HIGH",
+      "enabled": true,
+      "minimum_broadcast_secs": 1,
+      "monitor_pin": 10,
+      "name": "USR_BTN"
+    }
+  paxcounter
+    {}
