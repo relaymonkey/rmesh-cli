@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/agent"
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
 )
 
 var observeCmd = &cobra.Command{
@@ -18,11 +17,7 @@ var observeCmd = &cobra.Command{
 	Short: "Dry-run: local radio only, print JSONL to stdout (no cloud publish)",
 	Long:  "Validate transport, node-database synthesis, and envelope shape before enabling production publish.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path, err := loadConfig()
-		if err != nil {
-			return err
-		}
-		cfg, err := config.Load(path)
+		path, cfg, err := loadAgentConfig(cmd)
 		if err != nil {
 			return err
 		}

@@ -2,7 +2,8 @@ agent_id: my-agent-001
 
 transport:
   # url: serial:/dev/ttyUSB0
-  # url: serial:/dev/cu.Bluetooth-Incoming-Port
+  # url: http://192.168.1.10:4403
+  # url: ble://AA:BB:CC:DD:EE:FF
   url: serial:/dev/cu.usbmodem1101
 
 mqtt:

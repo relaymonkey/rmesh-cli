@@ -9,18 +9,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/agent"
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
 )
 
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the agent and publish to RelayMesh",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path, err := loadConfig()
-		if err != nil {
-			return err
-		}
-		cfg, err := config.Load(path)
+		path, cfg, err := loadAgentConfig(cmd)
 		if err != nil {
 			return err
 		}

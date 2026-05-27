@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +17,7 @@ var (
 	configPath   string
 	resetCadence bool
 	verbose      bool
+	debug        bool
 )
 
 // Execute runs the rmesh CLI.
@@ -57,6 +59,18 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", cliconfig.AgentConfigPath(), "path to config.yaml")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debug logging (transport, BLE, internal state)")
+	cobra.OnInitialize(applyDebugLogging)
+}
+
+func applyDebugLogging() {
+	level := slog.LevelInfo
+	if debug {
+		level = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	})))
 }
 
 func loadConfig() (cfgPath string, err error) {

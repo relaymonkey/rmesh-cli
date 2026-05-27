@@ -84,7 +84,7 @@ Local dev — see [developing.md](developing.md).
 
 | Field | Description |
 |---|---|
-| `transport.url` | Local radio connection URL: `serial:/dev/ttyUSB0`, `http://192.168.1.10:4403`, `ble://MAC` |
+| `transport.url` | Local radio connection URL: `serial:/dev/ttyUSB0`, `http://192.168.1.10:4403`, `ble://AA:BB:CC:DD:EE:FF` |
 | `mqtt.broker_url` | RelayMesh MQTT broker (`mqtt://host:1883`) |
 | `mqtt.username` / `mqtt.password` | Scoped credential from RelayMesh UI |
 | `mqtt.topic_prefix` | From credential issuance (`rm/n/<short_id>`) |

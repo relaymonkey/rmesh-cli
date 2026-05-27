@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
 	rmdevice "github.com/relaymonkey/relaymesh-edge/internal/device"
 	"github.com/relaymonkey/relaymesh-edge/internal/envelope"
 	"github.com/relaymonkey/relaymesh-edge/internal/nodeid"
@@ -24,14 +23,9 @@ var doctorCmd = &cobra.Command{
 		ui := cliui.New(cmd.OutOrStdout())
 		errUI := cliui.New(cmd.ErrOrStderr())
 
-		path, err := loadConfig()
+		path, cfg, err := loadAgentConfig(cmd)
 		if err != nil {
 			_ = errUI.Fail("Config load failed", cliui.Field{Key: "error", Value: err.Error()})
-			return err
-		}
-		cfg, err := config.Load(path)
-		if err != nil {
-			_ = errUI.Fail("Config invalid", cliui.Field{Key: "path", Value: path}, cliui.Field{Key: "error", Value: err.Error()})
 			return err
 		}
 		if err := ui.Success("Config",
@@ -53,7 +47,7 @@ var doctorCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		transport, err := rmtransport.Open(cfg.Transport.URL)
+		transport, err := rmtransport.Open(cfg.Transport.URL, rmtransport.Options{BLEPin: cfg.Transport.BLEPin})
 		if err != nil {
 			_ = errUI.Fail("Transport failed", cliui.Field{Key: "error", Value: err.Error()})
 			return err

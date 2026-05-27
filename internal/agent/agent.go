@@ -35,7 +35,7 @@ type Options struct {
 
 // Run connects to the local node and forwards traffic upstream.
 func Run(ctx context.Context, cfg config.Config, opts Options) error {
-	transport, err := rmtransport.Open(cfg.Transport.URL)
+	transport, err := rmtransport.Open(cfg.Transport.URL, rmtransport.Options{BLEPin: cfg.Transport.BLEPin})
 	if err != nil {
 		return fmt.Errorf("transport: %w", err)
 	}

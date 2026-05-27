@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
-	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
-	"github.com/relaymonkey/relaymesh-edge/internal/config"
 	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
 	"github.com/relaymonkey/relaymesh-edge/internal/session"
 )
@@ -260,7 +258,7 @@ func cachedDeviceConfigLabels(client *apiclient.Client, networkID, labelPrefix, 
 }
 
 func completeDeviceURL(toComplete string) ([]Item, error) {
-	url, err := agentTransportURL()
+	url, err := AgentConfigTransportURL()
 	if err != nil || url == "" {
 		return nil, err
 	}
@@ -269,14 +267,6 @@ func completeDeviceURL(toComplete string) ([]Item, error) {
 		return nil, nil
 	}
 	return []Item{{Value: value, Description: "agent config transport.url"}}, nil
-}
-
-func agentTransportURL() (string, error) {
-	cfg, err := config.Load(cliconfig.AgentConfigPath())
-	if err != nil {
-		return "", nil
-	}
-	return cfg.Transport.URL, nil
 }
 
 func looksLikeConfigPath(s string) bool {

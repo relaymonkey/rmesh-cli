@@ -16,6 +16,8 @@ func init() {
 	agentCmd.AddCommand(doctorCmd)
 	agentCmd.AddCommand(pairCmd)
 
+	initAgentConfigFlags(agentCmd)
+
 	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "log each MQTT publish (topic, source, portnum)")
 	runCmd.Flags().BoolVar(&resetCadence, "reset-cadence", false, "force synthetic re-emission on next tick")
 	observeCmd.Flags().BoolVar(&resetCadence, "reset-cadence", false, "force synthetic re-emission on next tick")
