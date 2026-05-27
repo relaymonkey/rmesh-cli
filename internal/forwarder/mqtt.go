@@ -46,7 +46,7 @@ func Connect(ctx context.Context, cfg config.MQTTConfig, agentID string, operato
 		BrokerUrls:        []*url.URL{u},
 		KeepAlive:         30,
 		ConnectRetryDelay: 3 * time.Second,
-		OnConnectionUp: func(_ *autopaho.ConnectionManager, _ *paho.Connack) {},
+		OnConnectionUp:    func(_ *autopaho.ConnectionManager, _ *paho.Connack) {},
 		ClientConfig: paho.ClientConfig{
 			ClientID: cfg.ClientID,
 		},

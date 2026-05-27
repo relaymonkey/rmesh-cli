@@ -42,7 +42,7 @@ grouped in the table output.
 			return err
 		}
 		// Empty --network falls back to the saved default
-		// (`rmesh network use`); same as before D-213.
+		// (`rmesh network use`).
 		netID, err := resolveNetworkID(cmd, client, listFlags.network)
 		if err != nil {
 			return err

@@ -19,8 +19,7 @@ import (
 )
 
 // deviceConfigCmd is the `rmesh device config` namespace root. Carries
-// the canonical verbs (show / copy / edit / list / promote) per D-209
-// + D-215 + D-216. The verb-specific files (device_config_show.go, …)
+// the canonical verbs (show / copy / edit / list / promote). The verb-specific files (device_config_show.go, …)
 // attach their commands to this root in their own init() blocks so
 // each verb's flag block stays adjacent to its handler.
 var deviceConfigCmd = &cobra.Command{
@@ -28,8 +27,7 @@ var deviceConfigCmd = &cobra.Command{
 	Short: "Show / copy / edit / list / promote full-surface Meshtastic device configurations",
 	Long: `Read and write the full Meshtastic device-configuration surface
 (every Config.* and ModuleConfig.* submessage + all channel rows)
-using a uniform --from / --to source grammar. Per D-208, D-209,
-D-212, D-213, D-215, D-216.
+using a uniform --from / --to source grammar.
 
 Verbs:
 
@@ -47,16 +45,16 @@ A source/destination token is one of:
   cloud:<network>/<label-or-id> saved cloud config (requires session)
   -                            stdout (only valid as --to)
 
-Mental model (D-216): ` + "`show`" + ` reads, ` + "`copy`" + ` transfers. ` + "`copy`" + ` is
+Mental model: ` + "`show`" + ` reads, ` + "`copy`" + ` transfers. ` + "`copy`" + ` is
 destination-agnostic — file, cloud, and device are all valid ` + "`--to`" + `
 targets; the side effects (radio reboot, cloud row creation, file
 write) live in the per-destination handler. Use ` + "`copy --dry-run`" + ` to
 preview a device apply.
 
-There is no separate ` + "`diff`" + ` verb (D-214) — ` + "`copy --dry-run`" + ` shows
+There is no separate ` + "`diff`" + ` verb — ` + "`copy --dry-run`" + ` shows
 the diff in the natural "device current → intended" direction.
 
-Deprecated aliases (kept for backwards compatibility; D-216):
+Deprecated aliases (kept for backwards compatibility):
   get → show / copy --to <file>
   set → copy`,
 }

@@ -17,7 +17,7 @@ func init() {
 	// trafficCmd — child commands inherit the same Flag pointer.
 	clicomplete.RegisterFlag(trafficCmd, "fields", clicomplete.MessageFieldsProvider)
 
-	// `rmesh device config` source / destination grammar (D-209 + D-216).
+	// `rmesh device config` source / destination grammar.
 	clicomplete.RegisterFlagDirective(deviceConfigShowCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
 	clicomplete.RegisterFlag(deviceConfigShowCmd, "output", clicomplete.StaticStrings("tree", "json", "yaml"))
 	clicomplete.RegisterFlag(deviceConfigShowCmd, "section", clicomplete.SectionKeysProvider)
@@ -27,7 +27,7 @@ func init() {
 	clicomplete.RegisterFlag(deviceConfigCopyCmd, "output", clicomplete.StaticStrings("yaml", "json", "tree"))
 	clicomplete.RegisterFlag(deviceConfigCopyCmd, "section", clicomplete.SectionKeysProvider)
 
-	// Deprecated aliases (D-216) — keep their narrower completion sets so
+	// Deprecated aliases — keep their narrower completion sets so
 	// the deprecation guidance matches what tab-complete suggests.
 	clicomplete.RegisterFlagDirective(deviceConfigGetCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
 	clicomplete.RegisterFlagDirective(deviceConfigGetCmd, "to", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointDestGet))

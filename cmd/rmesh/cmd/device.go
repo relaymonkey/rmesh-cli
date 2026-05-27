@@ -7,7 +7,7 @@ import (
 // deviceCmd is the namespace root for direct-device interaction
 // verbs.
 //
-// Per `D-209` we deliberately keep this root **empty of leaf verbs**
+// We deliberately keep this root **empty of leaf verbs**
 // for now and put all configuration I/O under `rmesh device config
 // <verb>`. The bare `rmesh device <verb>` namespace is reserved for
 // device-management verbs (`list`, `onboard`, `reboot`, `ping`,
@@ -25,7 +25,7 @@ var deviceCmd = &cobra.Command{
 Today this group only carries the ` + "`config`" + ` subcommand. The bare
 ` + "`rmesh device <verb>`" + ` namespace is reserved for future device-
 management verbs (list, onboard, reboot, ping, factory-reset, info)
-— see D-209 for the namespace claim.`,
+— see the device configuration specs for the namespace claim.`,
 }
 
 func init() {

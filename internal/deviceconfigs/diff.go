@@ -184,7 +184,7 @@ func orderedDiffKeys(a, b map[string]json.RawMessage, preferred []string) []stri
 // counter ambiguous (which of the 29 messages didn't take?). By
 // filtering down to the actual delta first, "drift > 0" tells the
 // operator exactly which submessages the firmware refused. See
-// `D-209`'s "one reboot per apply" contract — this is the same
+// the "one reboot per apply" contract — this is the same
 // principle extended to the section level.
 //
 // Channel filtering preserves slot semantics: an absent channel in

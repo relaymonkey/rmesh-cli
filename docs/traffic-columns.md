@@ -47,6 +47,5 @@ The API field catalog (`GET /messages/fields`) drives dynamic decoded columns in
 
 - Summary column logic mirrors the Traffic UI `summarizeDecoded()` helper.
   **rmesh:** `internal/climessages/summary.go`
-  **Frontend:** `relaymesh-frontend/src/components/networks/traffic/traffic-decoded-summary.ts`
-- REST shapes rmesh uses: `internal/apiclient/types.go` (keep aligned with `relaymesh-backend/openapi/relaymesh_api.yaml`)
-- Packet type display rule: frontend `.cursor/rules/packet-types.mdc`
+- REST shapes rmesh uses: `internal/apiclient/types.go` (aligned with RelayMesh API schema)
+- Packet type display rule: Displays packet types with both raw numeric value and readable label.

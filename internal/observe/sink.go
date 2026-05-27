@@ -26,12 +26,12 @@ type Event struct {
 	IngestSource string            `json:"ingest_source"`
 	IngestLabels map[string]string `json:"ingest_labels,omitempty"`
 	Topic        string            `json:"topic"`
-	GatewayID    string    `json:"gateway_id"`
-	From         uint32    `json:"from"`
-	To           uint32    `json:"to"`
-	PacketID     uint32    `json:"packet_id"`
-	Portnum      uint32    `json:"portnum,omitempty"`
-	Synthetic    bool      `json:"synthetic"`
+	GatewayID    string            `json:"gateway_id"`
+	From         uint32            `json:"from"`
+	To           uint32            `json:"to"`
+	PacketID     uint32            `json:"packet_id"`
+	Portnum      uint32            `json:"portnum,omitempty"`
+	Synthetic    bool              `json:"synthetic"`
 }
 
 // Write logs one envelope observation as JSONL.

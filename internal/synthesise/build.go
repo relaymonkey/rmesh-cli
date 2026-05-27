@@ -96,12 +96,12 @@ func BuildMapReport(node *proto.NodeInfo, channelIndex uint32, onlineLocal uint3
 func build(from, channelIndex uint32, port proto.PortNum, payload []byte, kind Kind) (*Outbound, error) {
 	contentKey := contentHash(from, port, payload)
 	packet := &proto.MeshPacket{
-		From:    from,
-		To:      meshtastic.BroadcastNodenum,
-		Channel: channelIndex,
-		Id:      deterministicPacketID(contentKey),
+		From:     from,
+		To:       meshtastic.BroadcastNodenum,
+		Channel:  channelIndex,
+		Id:       deterministicPacketID(contentKey),
 		HopLimit: 3,
-		ViaMqtt: true,
+		ViaMqtt:  true,
 		PayloadVariant: &proto.MeshPacket_Decoded{
 			Decoded: &proto.Data{
 				Portnum: port,

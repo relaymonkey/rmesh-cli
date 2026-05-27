@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/relaymonkey/relaymesh-edge/internal/clitraffic"
 	"github.com/relaymonkey/relaymesh-edge/internal/clioutput"
+	"github.com/relaymonkey/relaymesh-edge/internal/clitraffic"
 )
 
 var trafficListCmd = &cobra.Command{

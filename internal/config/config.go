@@ -19,11 +19,11 @@ const (
 
 // Config is the on-disk agent configuration.
 type Config struct {
-	AgentID   string            `yaml:"agent_id"`
-	Transport TransportConfig   `yaml:"transport"`
-	MQTT      MQTTConfig        `yaml:"mqtt"`
-	Labels    map[string]string `yaml:"labels"`
-	Synthesise SynthesiseConfig `yaml:"synthesise"`
+	AgentID    string            `yaml:"agent_id"`
+	Transport  TransportConfig   `yaml:"transport"`
+	MQTT       MQTTConfig        `yaml:"mqtt"`
+	Labels     map[string]string `yaml:"labels"`
+	Synthesise SynthesiseConfig  `yaml:"synthesise"`
 }
 
 // TransportConfig selects the local Phone API connection.
@@ -51,11 +51,11 @@ type SynthesiseConfig struct {
 
 // CadenceConfig is per-kind emission policy.
 type CadenceConfig struct {
-	Enabled                 bool          `yaml:"enabled"`
-	Interval                time.Duration `yaml:"interval"`
-	OnFirstSeen             bool          `yaml:"on_first_seen"`
-	Jitter                  time.Duration `yaml:"jitter"`
-	RespectPositionPrecision bool         `yaml:"respect_position_precision"`
+	Enabled                  bool          `yaml:"enabled"`
+	Interval                 time.Duration `yaml:"interval"`
+	OnFirstSeen              bool          `yaml:"on_first_seen"`
+	Jitter                   time.Duration `yaml:"jitter"`
+	RespectPositionPrecision bool          `yaml:"respect_position_precision"`
 }
 
 // Load reads and validates configuration from path.

@@ -17,7 +17,7 @@ import (
 )
 
 // ConfigEndpointKind selects which `--from` / `--to` tokens are valid
-// for a given flag on `rmesh device config` (D-209).
+// for a given flag on `rmesh device config`.
 type ConfigEndpointKind int
 
 const (
@@ -25,13 +25,13 @@ const (
 	// cloud.
 	ConfigEndpointSource ConfigEndpointKind = iota
 	// ConfigEndpointDestGet completes `get --to`: stdout or a file path.
-	// (Deprecated alias surface — D-216.)
+	// (Deprecated alias surface.)
 	ConfigEndpointDestGet
 	// ConfigEndpointDestSet completes `set --to`: device or cloud upload.
-	// (Deprecated alias surface — D-216.)
+	// (Deprecated alias surface.)
 	ConfigEndpointDestSet
 	// ConfigEndpointDestCopy completes `copy --to`: every destination
-	// (device, cloud, file, stdout) per D-216.
+	// (device, cloud, file, stdout).
 	ConfigEndpointDestCopy
 )
 
@@ -47,7 +47,7 @@ type deviceConfigCacheEntry struct {
 	at    time.Time
 }
 
-// ConfigEndpointProvider completes the D-209 `--from` / `--to` grammar.
+// ConfigEndpointProvider completes the `--from` / `--to` grammar.
 func ConfigEndpointProvider(kind ConfigEndpointKind) DirectiveProvider {
 	return func(ctx context.Context, toComplete string) ([]Item, cobra.ShellCompDirective, error) {
 		tc := strings.TrimSpace(toComplete)
@@ -140,10 +140,10 @@ func prefixCloudNetworks(ctx context.Context, toComplete, netPrefix string) ([]I
 	}
 	prefix := strings.ToLower(toComplete)
 	var items []Item
-	// Only offer the UUID — one row per network. Per D-137, short_id
+	// Only offer the UUID — one row per network. short_id
 	// exists specifically because the firmware's MQTTConfig.root buffer
-	// is 32 bytes (UUID overflows it), so short_id's designated role is
-	// the MQTT topic prefix `rm/n/{short_id}/...`. Promoting it in the
+	// is limited to 32 bytes (which a full UUID overflows), so short_id is
+	// dedicated to the MQTT topic prefix. Promoting it in the
 	// CLI URI grammar is scope creep on that role. Slug is the human
 	// URL handle for the frontend; name is display-only and shell-
 	// unfriendly. The UUID is the canonical key the backend uses
@@ -202,7 +202,7 @@ func cachedDeviceConfigLabels(client *apiclient.Client, networkID, labelPrefix, 
 	}
 	deviceConfigCacheMu.Unlock()
 
-	// The cloud splits configs into two collections (D-212): network
+	// The cloud splits configs into two collections: network
 	// templates live under /networks/{n}/device-configs, personal rows
 	// under /me/device-configs. Operators rarely care which side a
 	// label lives on when *completing* it — they just want every label

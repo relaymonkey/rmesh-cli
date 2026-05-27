@@ -25,7 +25,7 @@ var promoteFlags struct {
 }
 
 // deviceConfigPromoteCmd publishes a personal device config as a new
-// network template on the same network (D-212 / D-213).
+// network template on the same network.
 //
 // Why a dedicated verb (and not `set --shared`):
 //
@@ -41,7 +41,7 @@ var deviceConfigPromoteCmd = &cobra.Command{
 	Use:   "promote",
 	Short: "Publish a personal device config as a network template",
 	Long: `Create a new network template on the same network as a
-personal device config (D-213). The personal source row is left
+personal device config. The personal source row is left
 intact; a fresh template row is created with a separate id.
 
 Section allowlist: the server applies the allowlist server-side.

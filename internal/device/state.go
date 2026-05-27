@@ -14,7 +14,7 @@ import (
 // Channels, Metadata, Network), this records *every* `Config.*` and
 // `ModuleConfig.*` submessage the firmware emits during the config
 // sweep. We need the full surface for `rmesh device config get` and
-// for the diff that powers the apply pre-check (D-208 / D-209).
+// for the diff that powers the apply pre-check.
 type State struct {
 	meshtastic.DeviceState
 
@@ -22,31 +22,31 @@ type State struct {
 	// CanonicalPayload shape in internal/deviceconfigs). Values are
 	// the strongly-typed wire protos so the caller can both render
 	// them via protojson and reason about specific fields (e.g.
-	// LoRa.Region for the region-change safety check, D-210).
-	LoRa          *proto.Config_LoRaConfig
-	DeviceConfig  *proto.Config_DeviceConfig // Config.Device submessage; distinct from the embedded DeviceState.Device (DeviceMetadata)
-	Position  *proto.Config_PositionConfig
-	Power     *proto.Config_PowerConfig
-	Display   *proto.Config_DisplayConfig
-	Bluetooth *proto.Config_BluetoothConfig
-	Security  *proto.Config_SecurityConfig
+	// LoRa.Region for the region-change safety check).
+	LoRa         *proto.Config_LoRaConfig
+	DeviceConfig *proto.Config_DeviceConfig // Config.Device submessage; distinct from the embedded DeviceState.Device (DeviceMetadata)
+	Position     *proto.Config_PositionConfig
+	Power        *proto.Config_PowerConfig
+	Display      *proto.Config_DisplayConfig
+	Bluetooth    *proto.Config_BluetoothConfig
+	Security     *proto.Config_SecurityConfig
 
 	// ModuleConfig.* submessages. Forward-tolerant: only the ones
 	// the firmware emits will be non-nil; the canonicalisation step
 	// skips nil fields rather than writing them as empty objects.
-	ModuleMQTT             *proto.ModuleConfig_MQTTConfig
-	ModuleSerial           *proto.ModuleConfig_SerialConfig
-	ModuleExtNotification  *proto.ModuleConfig_ExternalNotificationConfig
-	ModuleStoreForward     *proto.ModuleConfig_StoreForwardConfig
-	ModuleRangeTest        *proto.ModuleConfig_RangeTestConfig
-	ModuleTelemetry        *proto.ModuleConfig_TelemetryConfig
-	ModuleCannedMessage    *proto.ModuleConfig_CannedMessageConfig
-	ModuleAudio            *proto.ModuleConfig_AudioConfig
-	ModuleRemoteHardware   *proto.ModuleConfig_RemoteHardwareConfig
-	ModuleNeighborInfo     *proto.ModuleConfig_NeighborInfoConfig
-	ModuleAmbientLighting  *proto.ModuleConfig_AmbientLightingConfig
-	ModuleDetectionSensor  *proto.ModuleConfig_DetectionSensorConfig
-	ModulePaxcounter       *proto.ModuleConfig_PaxcounterConfig
+	ModuleMQTT            *proto.ModuleConfig_MQTTConfig
+	ModuleSerial          *proto.ModuleConfig_SerialConfig
+	ModuleExtNotification *proto.ModuleConfig_ExternalNotificationConfig
+	ModuleStoreForward    *proto.ModuleConfig_StoreForwardConfig
+	ModuleRangeTest       *proto.ModuleConfig_RangeTestConfig
+	ModuleTelemetry       *proto.ModuleConfig_TelemetryConfig
+	ModuleCannedMessage   *proto.ModuleConfig_CannedMessageConfig
+	ModuleAudio           *proto.ModuleConfig_AudioConfig
+	ModuleRemoteHardware  *proto.ModuleConfig_RemoteHardwareConfig
+	ModuleNeighborInfo    *proto.ModuleConfig_NeighborInfoConfig
+	ModuleAmbientLighting *proto.ModuleConfig_AmbientLightingConfig
+	ModuleDetectionSensor *proto.ModuleConfig_DetectionSensorConfig
+	ModulePaxcounter      *proto.ModuleConfig_PaxcounterConfig
 }
 
 // GetState requests the full device state from the radio. Beyond

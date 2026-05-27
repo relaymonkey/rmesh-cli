@@ -67,4 +67,3 @@ Then `source ~/.zshrc`. Re-run after upgrading rmesh. Dynamic completion (`netwo
 
 - [configure.md](configure.md) — config file, env vars, and command reference
 - [traffic-columns.md](traffic-columns.md) — Traffic default columns shared with the web UI
-- [RelayMesh-Edge spec](https://github.com/relaymonkey/agent-specifications/tree/main/projects/RelayMesh-Edge) — design decisions and cloud contract

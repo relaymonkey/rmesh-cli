@@ -34,11 +34,11 @@ Local dev — see [developing.md](developing.md).
 | `mqtt.username` / `mqtt.password` | Scoped credential from RelayMesh UI |
 | `mqtt.topic_prefix` | From credential issuance (`rm/n/<short_id>`) |
 
-## Labels (`EDGE-D-02`)
+## Labels
 
 Free-form string map stamped on every publish via MQTT 5 user property `relaymesh_labels`. Keys prefixed `relaymesh.` are reserved for cloud metadata.
 
-## Synthesis cadence (`EDGE-D-08`)
+## Synthesis cadence
 
 `rmesh agent` synthesises standard `ServiceEnvelope` packets from local NodeDB for kinds the cloud cannot infer from RF-only ghosts:
 
@@ -98,5 +98,3 @@ rmesh agent observe     # JSONL dry-run, no MQTT
 rmesh agent run         # production publish
 rmesh agent pair        # requires auth; cloud pairing API stub
 ```
-
-Spec: [RelayMesh-Edge README](https://github.com/relaymonkey/agent-specifications/tree/main/projects/RelayMesh-Edge)

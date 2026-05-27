@@ -25,7 +25,7 @@ var pairCmd = &cobra.Command{
 		}
 
 		ui := cliui.New(cmd.OutOrStdout())
-		if err := ui.Status("Signed in · "+me.Email); err != nil {
+		if err := ui.Status("Signed in · " + me.Email); err != nil {
 			return err
 		}
 		if err := ui.Blank(); err != nil {

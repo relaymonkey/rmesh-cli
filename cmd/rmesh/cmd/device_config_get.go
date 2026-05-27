@@ -14,7 +14,7 @@ var getFlags commonFlags
 
 var deviceConfigGetCmd = &cobra.Command{
 	Use:        "get",
-	Deprecated: "use `rmesh device config show` to print, or `rmesh device config copy --to <path>` to save to a file (D-216).",
+	Deprecated: "use `rmesh device config show` to print, or `rmesh device config copy --to <path>` to save to a file.",
 	Hidden:     true,
 	Short:      "Read a device configuration from any source and render or save it",
 	Long: `Read a device configuration from a live device, a local file, or
@@ -48,13 +48,13 @@ Examples:
 			switch dst.Kind {
 			case deviceconfigs.SourceDevice:
 				return fmt.Errorf(
-					"`get --to device` is not supported; `get` only reads. " +
+					"`get --to device` is not supported; `get` only reads. "+
 						"Use `rmesh device config set --from %s --to device` to push a config to a device.",
 					src,
 				)
 			case deviceconfigs.SourceCloud:
 				return fmt.Errorf(
-					"`get --to cloud:...` is not supported; `get` only reads. " +
+					"`get --to cloud:...` is not supported; `get` only reads. "+
 						"Use `rmesh device config set --from %s --to %s` to save a config to the cloud.",
 					src, dst,
 				)

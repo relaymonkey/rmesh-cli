@@ -7,9 +7,9 @@ import (
 )
 
 type fakeCloudClient struct {
-	list      apiclient.MessageList
-	stream    func(context.Context, string, func(map[string]any), func(apiclient.MessageEnvelope)) error
-	resolve   func(context.Context, string) (apiclient.Network, error)
+	list    apiclient.MessageList
+	stream  func(context.Context, string, func(map[string]any), func(apiclient.MessageEnvelope)) error
+	resolve func(context.Context, string) (apiclient.Network, error)
 }
 
 func (f *fakeCloudClient) GetMe(context.Context) (apiclient.Me, error) {

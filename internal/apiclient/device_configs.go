@@ -10,7 +10,7 @@ import (
 )
 
 // DeviceConfigSummary mirrors the backend's `DeviceConfigSummary`
-// shape (relaymesh-backend/openapi/relaymesh_api.yaml). Metadata-only;
+// shape. Metadata-only;
 // the payload travels with `DeviceConfigDetail`.
 type DeviceConfigSummary struct {
 	ID                   string   `json:"id"`
@@ -59,7 +59,7 @@ type CreateTemplateRequest struct {
 }
 
 // CreatePersonalRequest mirrors `DeviceConfigCreatePersonalRequest`.
-// Used by `set --to cloud` after D-213 — `set --to cloud` always
+// Used by `set --to cloud` where `set --to cloud` always
 // writes a personal row.
 type CreatePersonalRequest struct {
 	NetworkID       string                         `json:"network_id"`
@@ -127,7 +127,7 @@ func (c *Client) GetDeviceConfig(ctx context.Context, networkID, configID string
 
 // CreateMyDeviceConfig posts a new **personal** device config to
 // the caller's library. Used by `rmesh device config set --to cloud`
-// after D-213 — `set --to cloud` is always a personal save.
+// where `set --to cloud` is always a personal save.
 func (c *Client) CreateMyDeviceConfig(ctx context.Context, req CreatePersonalRequest) (DeviceConfigDetail, error) {
 	var out DeviceConfigDetail
 	if err := c.PostJSON(ctx, "/api/v1/me/device-configs", req, &out); err != nil {
@@ -168,7 +168,7 @@ func (c *Client) UpdateDeviceConfig(ctx context.Context, networkID, configID str
 // CreateNetworkTemplate posts a new **network template** to a
 // network. Requires the caller to hold an elevated network role
 // server-side; the CLI doesn't gate up-front. Used internally by
-// `promote`; not exposed as a top-level verb (see D-213).
+// `promote`; not exposed as a top-level verb.
 func (c *Client) CreateNetworkTemplate(ctx context.Context, networkID string, req CreateTemplateRequest) (DeviceConfigDetail, error) {
 	path := fmt.Sprintf("/api/v1/networks/%s/device-configs", url.PathEscape(networkID))
 	var out DeviceConfigDetail
@@ -200,7 +200,7 @@ const (
 	// OwnerEither resolves the supplied ref against the caller's
 	// personal library first, then falls back to network templates.
 	// Used for bare `cloud:<n>/<label>` so existing scripts keep
-	// working post-D-213.
+	// working.
 	OwnerEither OwnerHint = ""
 	// OwnerMine restricts resolution to personal rows.
 	OwnerMine OwnerHint = "mine"
@@ -211,7 +211,7 @@ const (
 // ResolveDeviceConfigID accepts either a UUID or a human label and
 // returns the matching `cfg_id`. Honours `hint` to disambiguate
 // between personal and template rows when both share a label
-// (D-213). The cloud doesn't expose a `find by label` endpoint
+// The cloud doesn't expose a `find by label` endpoint
 // today, so we paginate through the list — cheap enough.
 func (c *Client) ResolveDeviceConfigID(ctx context.Context, networkID, ref string, hint OwnerHint) (string, error) {
 	if isUUIDLike(ref) {

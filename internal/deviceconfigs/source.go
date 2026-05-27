@@ -7,8 +7,7 @@ import (
 )
 
 // SourceKind discriminates where a config comes from or goes to in
-// the `rmesh device config <verb> --from <src> --to <dst>` grammar
-// (D-209).
+// the `rmesh device config <verb> --from <src> --to <dst>` grammar.
 type SourceKind int
 
 const (
@@ -29,7 +28,7 @@ const (
 )
 
 // CloudOwner discriminates a cloud source's owner segment in the
-// `cloud:<n>/{mine|template}/<label>` URI grammar (D-213).
+// `cloud:<n>/{mine|template}/<label>` URI grammar.
 type CloudOwner string
 
 const (

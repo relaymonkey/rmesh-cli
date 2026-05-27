@@ -5,16 +5,16 @@ import (
 )
 
 var (
-	trafficNetwork         string
-	trafficOutput          string
-	trafficLimit           int
-	trafficFields          string
-	trafficFilters         []string
-	trafficNodeFilters     []string
-	trafficGatewayFilters  []string
-	trafficFrom            string
-	trafficTo              string
-	trafficQ               string
+	trafficNetwork        string
+	trafficOutput         string
+	trafficLimit          int
+	trafficFields         string
+	trafficFilters        []string
+	trafficNodeFilters    []string
+	trafficGatewayFilters []string
+	trafficFrom           string
+	trafficTo             string
+	trafficQ              string
 )
 
 var trafficCmd = &cobra.Command{

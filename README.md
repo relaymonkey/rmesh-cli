@@ -21,7 +21,6 @@ rmesh traffic text
 
 - [Configuration and commands](docs/configure.md)
 - [Build, local dev, and contributing](docs/developing.md)
-- [Design spec](https://github.com/relaymonkey/agent-specifications/tree/main/projects/RelayMesh-Edge)
 
 ## License
 

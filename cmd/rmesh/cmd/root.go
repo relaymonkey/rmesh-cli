@@ -68,3 +68,8 @@ func loadConfig() (cfgPath string, err error) {
 	}
 	return configPath, nil
 }
+
+// SetVersion sets the version of the CLI.
+func SetVersion(v string) {
+	rootCmd.Version = v
+}

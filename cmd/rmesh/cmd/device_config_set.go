@@ -19,14 +19,13 @@ import (
 
 var setFlags commonFlags
 
-// regionChangeRefused signals the operator-explicit-consent failure
-// described by D-210. exit code 2 (distinct from 1) so wrappers can
-// branch on it.
-var errRegionChangeRefused = errors.New("region change refused; pass --allow-region-change to proceed (D-210)")
+// regionChangeRefused signals the operator-explicit-consent failure.
+// exit code 2 (distinct from 1) so wrappers can branch on it.
+var errRegionChangeRefused = errors.New("region change refused; pass --allow-region-change to proceed")
 
 var deviceConfigSetCmd = &cobra.Command{
 	Use:        "set",
-	Deprecated: "use `rmesh device config copy` instead (D-216). `copy --to <dst>` accepts every destination (device, cloud, file, stdout) without the file/stdout rejection that `set` carries.",
+	Deprecated: "use `rmesh device config copy` instead. `copy --to <dst>` accepts every destination (device, cloud, file, stdout) without the file/stdout rejection that `set` carries.",
 	Hidden:     true,
 	Short:      "Apply a device configuration to a device, or upload it to the cloud",
 	Long: `Write a configuration to a destination. Source / destination combinations:
@@ -38,9 +37,9 @@ var deviceConfigSetCmd = &cobra.Command{
 
 Applying to a device wraps every Set* admin message in a single
 BeginEditSettings / CommitEditSettings session so the firmware reboots
-at most once (D-209). When the source payload's lora.region differs
+at most once. When the source payload's lora.region differs
 from the device's currently reported region, the apply refuses unless
-` + "`--allow-region-change`" + ` is passed (D-210; exit code 2 on refusal).`,
+` + "`--allow-region-change`" + ` is passed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		src, err := deviceconfigs.ParseSource(setFlags.from)
 		if err != nil {
@@ -93,12 +92,12 @@ from the device's currently reported region, the apply refuses unless
 		switch dst.Kind {
 		case deviceconfigs.SourceDevice:
 			return applyToDevice(ctx, cmd, dst, payload)
-	case deviceconfigs.SourceCloud:
-		return uploadToCloud(ctx, cmd, dst, payload, fwHint, client, cloudUploadOptions{
-			Label:       setFlags.label,
-			Description: setFlags.description,
-		})
-	}
+		case deviceconfigs.SourceCloud:
+			return uploadToCloud(ctx, cmd, dst, payload, fwHint, client, cloudUploadOptions{
+				Label:       setFlags.label,
+				Description: setFlags.description,
+			})
+		}
 		return fmt.Errorf("unsupported --to %s", dst)
 	},
 }
@@ -131,7 +130,7 @@ func applyToDevice(
 }
 
 // applyPayloadToDevice runs the admin-edit-session apply and
-// surfaces the region-change pre-check (D-210). Shared between
+// surfaces the region-change pre-check. Shared between
 // `set --to device` and `edit --from device`.
 func applyPayloadToDevice(
 	ctx context.Context,
@@ -150,7 +149,7 @@ func applyPayloadToDevice(
 	}
 	defer rmtransport.Close(transport)
 
-	// Region safety pre-check (D-210).
+	// Region safety pre-check.
 	readCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	current, err := rmdevice.GetState(readCtx, transport)
@@ -163,14 +162,14 @@ func applyPayloadToDevice(
 	if intendedHints.Region != "" && intendedHints.Region != currentHints.Region && currentHints.Region != "" {
 		if !opts.AllowRegionChange {
 			fmt.Fprintf(cmd.ErrOrStderr(),
-				"error: region change %s → %s would alter regulatory band; pass --allow-region-change to proceed (D-210)\n",
+				"error: region change %s → %s would alter regulatory band; pass --allow-region-change to proceed\n",
 				currentHints.Region, intendedHints.Region)
 			// Signal exit code 2 to the cobra wrapper.
 			os.Exit(2)
 		}
 	}
 
-	// Apply-by-diff (D-209 + D-214): only ship admin messages for
+	// Apply-by-diff: only ship admin messages for
 	// submessages that actually need to change. Burning flash on
 	// SetConfig-with-no-delta and reporting "21 sections, 1 drift"
 	// makes operator triage impossible — they can't tell which of
@@ -263,7 +262,7 @@ func applyPayloadToDevice(
 }
 
 // cloudUploadOptions decouples uploadToCloud from any single verb's
-// flag struct; both `set` and `copy` (D-216) populate this and call
+// flag struct; both `set` and `copy` populate this and call
 // the shared helper.
 type cloudUploadOptions struct {
 	Label       string
@@ -280,7 +279,7 @@ func uploadToCloud(
 	opts cloudUploadOptions,
 ) error {
 	// `copy --to cloud` (and the deprecated `set --to cloud`) is always
-	// a personal save (D-213). To publish a personal row as a network
+	// a personal save. To publish a personal row as a network
 	// template, the operator runs the dedicated `rmesh device config
 	// promote` verb. Any explicit `cloud:<n>/template/<label>`
 	// destination is rejected here so the operator gets a clear error
@@ -289,7 +288,7 @@ func uploadToCloud(
 		return errors.New(
 			"`--to cloud:<n>/template/<label>` is not supported; " +
 				"writing to cloud always creates a personal row. " +
-				"Use `rmesh device config promote` to publish a personal config as a network template (D-213).",
+				"Use `rmesh device config promote` to publish a personal config as a network template.",
 		)
 	}
 	label := opts.Label
@@ -338,7 +337,7 @@ func init() {
 	f.StringSliceVar(&setFlags.section, "section", nil, "Comma-separated list of submessage keys to apply (default: all)")
 	f.StringSliceVar(&setFlags.exclude, "exclude", nil, "Comma-separated list of dotted paths to drop (e.g. owner,lora.region)")
 	f.BoolVar(&setFlags.dryRun, "dry-run", false, "Print the diff that would be applied; do not write to the device")
-	f.BoolVar(&setFlags.allowRegionChange, "allow-region-change", false, "Acknowledge that the apply changes the radio's regulatory region (D-210)")
+	f.BoolVar(&setFlags.allowRegionChange, "allow-region-change", false, "Acknowledge that the apply changes the radio's regulatory region")
 	f.StringVar(&setFlags.label, "label", "", "Label for the new personal cloud config (required when --to cloud)")
 	f.StringVar(&setFlags.description, "description", "", "Optional description stored alongside the cloud config")
 	f.DurationVar(&setFlags.rebootWait, "reboot-wait", 15*time.Second, "How long to wait for FromRadio_Rebooted after CommitEditSettings")

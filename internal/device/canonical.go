@@ -13,7 +13,7 @@ import (
 
 // marshalOpts is shared across this package's protojson conversions.
 // `UseProtoNames` keeps the canonical snake_case keys that match the
-// .proto field names (and our spec D-208 canonical shape); the default
+// .proto field names (and our canonical shape); the default
 // camelCase would diverge from the backend's `region` / `modem_preset`
 // hint extraction.
 var marshalOpts = protojson.MarshalOptions{
@@ -31,7 +31,7 @@ var unmarshalOpts = protojson.UnmarshalOptions{
 }
 
 // ToCanonicalPayload converts a fully-populated `State` into the
-// canonical payload shape (D-208). Submessages the firmware did not
+// canonical payload shape. Submessages the firmware did not
 // emit (nil pointers) are simply omitted from the result.
 func ToCanonicalPayload(s State) (deviceconfigs.CanonicalPayload, error) {
 	out := deviceconfigs.CanonicalPayload{

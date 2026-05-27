@@ -16,16 +16,16 @@ type MessageList struct {
 
 // ListMessagesQuery holds GET /messages query parameters (passed through raw).
 type ListMessagesQuery struct {
-	From            string
-	To              string
-	Q               string
-	Filters         []string
-	NodeFilters     []string
-	GatewayFilters  []string
-	Sort            []string
-	Cursor          string
-	Limit           int
-	Order           string
+	From           string
+	To             string
+	Q              string
+	Filters        []string
+	NodeFilters    []string
+	GatewayFilters []string
+	Sort           []string
+	Cursor         string
+	Limit          int
+	Order          string
 }
 
 // ListMessages returns historical message envelopes for a network.

@@ -12,7 +12,7 @@ import (
 	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
 )
 
-// copyFlags is the flag block for `rmesh device config copy` (D-216).
+// copyFlags is the flag block for `rmesh device config copy`.
 // `copy` is the transfer verb: any source → any destination, side
 // effects (radio reboot, cloud row creation, file write) decided by
 // the destination kind in the per-destination handler.
@@ -36,9 +36,7 @@ var deviceConfigCopyCmd = &cobra.Command{
 	Long: `Transfer a configuration payload from a source to a destination.
 The destination's side effects (radio reboot, cloud row creation, file
 write) live in the per-destination handler; the verb itself is
-destination-agnostic. Per D-209 (source grammar, one-reboot-per-apply),
-D-210 (region gate), D-213 (no template writes — use ` + "`promote`" + `),
-D-216 (verb naming).
+destination-agnostic.
 
 Sources and destinations: ` + "`device[:url]`" + `, ` + "`file:<path>`" + ` (or ` + "`./path.yaml`" + `),
 ` + "`cloud:<network>[/{mine|template}]/<label>`" + `; ` + "`-`" + ` is also a valid
@@ -71,10 +69,9 @@ inspection use ` + "`rmesh device config show`" + ` instead.
 
 Applying to a device wraps every Set* admin message in a single
 BeginEditSettings / CommitEditSettings session so the firmware reboots
-at most once (D-209). When the source payload's ` + "`lora.region`" + `
+at most once. When the source payload's ` + "`lora.region`" + `
 differs from the device's currently reported region, the apply refuses
-unless ` + "`--allow-region-change`" + ` is passed (D-210; exit code 2 on
-refusal).`,
+unless ` + "`--allow-region-change`" + ` is passed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		src, err := deviceconfigs.ParseSource(copyFlags.from)
 		if err != nil {
@@ -196,7 +193,7 @@ func init() {
 	f.StringSliceVar(&copyFlags.section, "section", nil, "Comma-separated list of submessage keys to include (default: all)")
 	f.StringSliceVar(&copyFlags.exclude, "exclude", nil, "Comma-separated list of dotted paths to drop (e.g. owner,lora.region)")
 	f.BoolVar(&copyFlags.dryRun, "dry-run", false, "Print what would be transferred; do not write")
-	f.BoolVar(&copyFlags.allowRegionChange, "allow-region-change", false, "Acknowledge that applying to a device changes the radio's regulatory region (D-210)")
+	f.BoolVar(&copyFlags.allowRegionChange, "allow-region-change", false, "Acknowledge that applying to a device changes the radio's regulatory region")
 	f.StringVar(&copyFlags.label, "label", "", "Label for the new personal cloud config (required when --to cloud and the destination has no label tail)")
 	f.StringVar(&copyFlags.description, "description", "", "Optional description stored alongside the cloud config")
 	f.DurationVar(&copyFlags.rebootWait, "reboot-wait", 15*time.Second, "How long to wait for FromRadio_Rebooted after CommitEditSettings (device destinations only)")

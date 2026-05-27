@@ -1,6 +1,5 @@
 // Package deviceconfigs implements the canonical Meshtastic
-// device-configuration shape used by `rmesh device config` (D-208 /
-// D-209).
+// device-configuration shape used by `rmesh device config`.
 //
 // The canonical shape is intentionally protojson-flavoured: each
 // submessage is stored as raw JSON so unknown fields from newer
@@ -25,8 +24,7 @@ const SchemaVersion = 1
 // CanonicalPayload is the canonical wire / file shape. Each
 // submessage is stored as raw JSON so the editor / renderer can
 // inspect known sub-fields while unknown fields round-trip
-// untouched. See the backend mirror in
-// `relaymesh-backend/internal/deviceconfigs/deviceconfig.go`.
+// untouched.
 type CanonicalPayload struct {
 	Channels      []json.RawMessage          `json:"channels,omitempty"`
 	Config        map[string]json.RawMessage `json:"config,omitempty"`
@@ -65,7 +63,7 @@ func AllSubmessageKeys() []string {
 
 // LoRaHints captures the two denormalised hints the backend stores
 // alongside the sealed blob — region and modem preset. The CLI uses
-// them for region-change safety checks (D-210).
+// them for region-change safety checks.
 type LoRaHints struct {
 	Region      string
 	ModemPreset string
