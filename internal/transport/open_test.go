@@ -30,7 +30,7 @@ func TestBLETarget(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.raw, func(t *testing.T) {
-			u, err := url.Parse(tc.raw)
+			u, err := url.Parse(normalizeBLEMACURL(tc.raw))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -48,5 +48,21 @@ func TestBLETarget(t *testing.T) {
 				t.Fatalf("got mac=%q name=%q, want mac=%q name=%q", mac, name, tc.wantMAC, tc.wantName)
 			}
 		})
+	}
+}
+
+func TestNormalizeBLEMACURL(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"ble://00:1A:7D:DA:71:13", "ble:00:1A:7D:DA:71:13"},
+		{"BLE://00:1A:7D:DA:71:13", "ble:00:1A:7D:DA:71:13"},
+		{"ble://Meshtastic_ab12", "ble://Meshtastic_ab12"},
+		{"ble://A890DB11-E4B8-ADD4-D2A1-060A4F2E5FA9", "ble://A890DB11-E4B8-ADD4-D2A1-060A4F2E5FA9"},
+		{"serial:/dev/ttyUSB0", "serial:/dev/ttyUSB0"},
+		{"ble:00:1A:7D:DA:71:13", "ble:00:1A:7D:DA:71:13"},
+	}
+	for _, tc := range tests {
+		if got := normalizeBLEMACURL(tc.in); got != tc.want {
+			t.Errorf("normalizeBLEMACURL(%q) = %q, want %q", tc.in, got, tc.want)
+		}
 	}
 }

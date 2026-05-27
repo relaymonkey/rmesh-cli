@@ -4,10 +4,29 @@ package transport
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/exepirit/meshtastic-go/pkg/meshtastic"
 	"github.com/exepirit/meshtastic-go/pkg/meshtastic/http"
 )
+
+// normalizeBLEMACURL rewrites ble://AA:BB:CC:DD:EE:FF into the opaque form
+// ble:AA:BB:CC:DD:EE:FF so net/url.Parse doesn't choke on the colons (which it
+// otherwise interprets as port separators in the authority).
+func normalizeBLEMACURL(s string) string {
+	const prefix = "ble://"
+	if !strings.HasPrefix(strings.ToLower(s), prefix) {
+		return s
+	}
+	host := s[len(prefix):]
+	if i := strings.IndexAny(host, "/?#"); i >= 0 {
+		host = host[:i]
+	}
+	if strings.Count(host, ":") < 2 {
+		return s
+	}
+	return "ble:" + s[len(prefix):]
+}
 
 // Options holds optional knobs that apply to specific transports.
 // Unknown fields are ignored by transports that don't use them.
@@ -31,6 +50,7 @@ func Open(connectionString string, opts ...Options) (meshtastic.HardwareTranspor
 	if len(opts) > 0 {
 		o = opts[0]
 	}
+	connectionString = normalizeBLEMACURL(connectionString)
 	u, err := url.Parse(connectionString)
 	if err != nil {
 		return nil, fmt.Errorf("invalid connection string: %w", err)
