@@ -140,27 +140,32 @@ func prefixCloudNetworks(ctx context.Context, toComplete, netPrefix string) ([]I
 	}
 	prefix := strings.ToLower(toComplete)
 	var items []Item
-	seen := map[string]struct{}{}
+	// Only offer the UUID — one row per network. Per D-137, short_id
+	// exists specifically because the firmware's MQTTConfig.root buffer
+	// is 32 bytes (UUID overflows it), so short_id's designated role is
+	// the MQTT topic prefix `rm/n/{short_id}/...`. Promoting it in the
+	// CLI URI grammar is scope creep on that role. Slug is the human
+	// URL handle for the frontend; name is display-only and shell-
+	// unfriendly. The UUID is the canonical key the backend uses
+	// everywhere, paste-safe, and unambiguous. ResolveNetworkRef stays
+	// permissive (UUID + slug + short_id + name) so operators with
+	// alternate forms in their shell history don't break — this only
+	// changes what we *suggest*, not what we accept.
 	for _, n := range nets {
-		desc := fmt.Sprintf("%s (%s)", n.Name, n.ID)
-		for _, ref := range []string{n.Slug, n.ShortID, n.ID, n.Name} {
-			if ref == "" {
-				continue
-			}
-			if netPrefix != "" && !strings.HasPrefix(strings.ToLower(ref), strings.ToLower(netPrefix)) {
-				continue
-			}
-			value := "cloud:" + ref + "/"
-			if _, ok := seen[value]; ok {
-				continue
-			}
-			if prefix != "" && !strings.HasPrefix(strings.ToLower(value), prefix) &&
-				!strings.HasPrefix(strings.ToLower("cloud:"+ref), prefix) {
-				continue
-			}
-			seen[value] = struct{}{}
-			items = append(items, Item{Value: value, Description: desc})
+		if n.ID == "" {
+			continue
 		}
+		if netPrefix != "" && !strings.HasPrefix(strings.ToLower(n.ID), strings.ToLower(netPrefix)) {
+			continue
+		}
+		value := "cloud:" + n.ID + "/"
+		if prefix != "" && !strings.HasPrefix(strings.ToLower(value), prefix) {
+			continue
+		}
+		items = append(items, Item{
+			Value:       value,
+			Description: fmt.Sprintf("%s (%s)", n.Name, n.ID),
+		})
 	}
 	return items, nil
 }
@@ -197,25 +202,55 @@ func cachedDeviceConfigLabels(client *apiclient.Client, networkID, labelPrefix, 
 	}
 	deviceConfigCacheMu.Unlock()
 
-	list, err := client.ListDeviceConfigs(context.Background(), networkID)
-	if err != nil {
-		return nil, err
+	// The cloud splits configs into two collections (D-212): network
+	// templates live under /networks/{n}/device-configs, personal rows
+	// under /me/device-configs. Operators rarely care which side a
+	// label lives on when *completing* it — they just want every label
+	// they can `show --from cloud:<n>/<label>` against. Union both
+	// lists and tag the description so the per-row "mine" vs "template"
+	// distinction stays visible.
+	bgCtx := context.Background()
+	templates, terr := client.ListDeviceConfigs(bgCtx, networkID)
+	mine, merr := client.ListMyDeviceConfigs(bgCtx, networkID)
+	// Tolerate partial failures — if one side errors (e.g. the operator
+	// isn't a member, or backend transient), still offer the other.
+	if terr != nil && merr != nil {
+		return nil, terr
 	}
+
 	lp := strings.ToLower(labelPrefix)
 	var items []Item
-	for _, cfg := range list.Items {
+	seenLabel := map[string]struct{}{}
+	emit := func(cfg apiclient.DeviceConfigSummary, ownerTag string) {
 		if lp != "" && !strings.HasPrefix(strings.ToLower(cfg.Label), lp) &&
 			!strings.HasPrefix(strings.ToLower(cfg.ID), lp) {
-			continue
+			return
 		}
+		// Personal + template can share a label (the backend's unique
+		// indexes are per-ownership). Disambiguate with the explicit
+		// `mine/` / `template/` prefix so completion never offers two
+		// rows that produce different payloads when expanded.
+		value := valuePrefix + ownerTag + "/" + cfg.Label
+		if _, ok := seenLabel[value]; ok {
+			return
+		}
+		seenLabel[value] = struct{}{}
 		desc := cfg.Region
 		if cfg.ModemPreset != "" {
 			desc = cfg.Region + " · " + cfg.ModemPreset
 		}
-		items = append(items, Item{
-			Value:       valuePrefix + cfg.Label,
-			Description: desc,
-		})
+		if desc == "" {
+			desc = ownerTag
+		} else {
+			desc = ownerTag + " · " + desc
+		}
+		items = append(items, Item{Value: value, Description: desc})
+	}
+	for _, cfg := range mine.Items {
+		emit(cfg, "mine")
+	}
+	for _, cfg := range templates.Items {
+		emit(cfg, "template")
 	}
 
 	deviceConfigCacheMu.Lock()
