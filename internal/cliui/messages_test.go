@@ -35,6 +35,17 @@ func TestPromotedCloudConfigPlain(t *testing.T) {
 	}
 }
 
+func TestDeletedCloudConfigPlain(t *testing.T) {
+	u, buf := plainUI()
+	if err := u.DeletedCloudConfig("eu-868", "cloud:home/mine/eu-868", "uuid-1"); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "ok Deleted cloud config · eu-868") {
+		t.Fatalf("out = %q", out)
+	}
+}
+
 func TestDryRunPlain(t *testing.T) {
 	u, buf := plainUI()
 	if err := u.DryRun("PATCH not sent"); err != nil {

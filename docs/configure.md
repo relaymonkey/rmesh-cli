@@ -149,6 +149,7 @@ rmesh device config copy --from cloud:home/eu-868 --to device --dry-run
 rmesh device config edit --from device                    # $EDITOR round-trip
 rmesh device config list --network <id>                   # saved configs on a network
 rmesh device config promote --from cloud:<n>/mine/<label> --to <network>
+rmesh device config delete --from cloud:<n>/mine/<label>   # --yes to skip prompt
 # Sources/destinations: device[:url], file:<path>, cloud:<network>/<label>, - (stdout)
 # Deprecated aliases: get → show; set → copy
 

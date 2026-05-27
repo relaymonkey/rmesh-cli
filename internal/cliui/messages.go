@@ -44,3 +44,11 @@ func (u *UI) NoChanges(source string) error {
 func (u *UI) DryRun(headline string, fields ...Field) error {
 	return u.Status("Dry run · "+headline, fields...)
 }
+
+// DeletedCloudConfig reports a removed personal or template row.
+func (u *UI) DeletedCloudConfig(label, path, id string) error {
+	return u.Success("Deleted cloud config · "+label,
+		Field{Key: "path", Value: path},
+		Field{Key: "id", Value: id},
+	)
+}

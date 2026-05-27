@@ -24,7 +24,7 @@ import (
 // each verb's flag block stays adjacent to its handler.
 var deviceConfigCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Show / copy / edit / list / promote full-surface device configurations",
+	Short: "Show / copy / edit / list / promote / delete full-surface device configurations",
 	Long: `Read and write the full device-configuration surface
 (settings, modules, and channel rows) using a uniform --from / --to source grammar.
 
@@ -35,6 +35,7 @@ Verbs:
   rmesh device config edit     --from <src>                       # $EDITOR round-trip
   rmesh device config list     [--network <n>]
   rmesh device config promote  --from cloud:<n>/mine/<label> --to <network> ...
+  rmesh device config delete   --from cloud:<n>/mine|<template>/<label> [--yes]
 
 A source/destination token is one of:
 

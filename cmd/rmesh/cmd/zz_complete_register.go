@@ -44,6 +44,9 @@ func init() {
 	clicomplete.RegisterFlagDirective(deviceConfigEditCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
 	clicomplete.RegisterFlag(deviceConfigEditCmd, "format", clicomplete.StaticStrings("yaml", "json"))
 
+	clicomplete.RegisterFlagDirective(deviceConfigDeleteCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
+	clicomplete.RegisterFlagDirective(deviceConfigPromoteCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
+
 	// Agent config overrides (persistent on agentCmd).
 	clicomplete.RegisterFlagDirective(agentCmd, "transport-url", clicomplete.TransportURLProvider)
 }
