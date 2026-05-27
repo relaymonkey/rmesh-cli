@@ -82,7 +82,7 @@ func (p *Publisher) Close(ctx context.Context) {
 	_ = p.conn.Disconnect(ctx)
 }
 
-// PublishPassthrough forwards a packet heard over Phone API.
+// PublishPassthrough forwards a packet heard from the local radio.
 func (p *Publisher) PublishPassthrough(ctx context.Context, env *proto.ServiceEnvelope) error {
 	return p.publish(ctx, env, labels.IngestSource(p.agentID))
 }

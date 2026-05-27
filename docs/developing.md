@@ -1,6 +1,16 @@
 # Developing rmesh
 
-Build from source, run against a local RelayMesh stack, and use Makefile shortcuts for the `agent` subcommand.
+Build from source, run against a local RelayMesh stack and use Makefile shortcuts for the `agent` subcommand.
+
+End-user install (macOS, Linux, Windows) — see [configure.md](configure.md#install).
+
+## Release pipeline (maintainers)
+
+Semantic-release tags `rmesh-cli`; GoReleaser uploads release assets and updates the [relaymonkey/homebrew-tap](https://github.com/relaymonkey/homebrew-tap) Homebrew cask on each publish.
+
+Release workflows authenticate with the org **relaymonkey-bot** GitHub App (`RM_BOT_APP_ID` org variable + `RM_BOT_PRIVATE_KEY` org secret). The bot token is used for semantic-release, GitHub Releases and Homebrew tap commits.
+
+Install scripts (`scripts/install.sh`, `scripts/install.ps1`) and Homebrew download release assets anonymously — **`rmesh-cli` must be public** for end-user install to work.
 
 ## Build and install
 
@@ -17,14 +27,14 @@ Other targets: `make test-race`, `make coverage-web`, `make fmt`, `make vet`, `m
 
 ## Local RelayMesh stack
 
-With `relaymesh-backend` docker-compose running (API `:8090`, Kratos `:4433`):
+With a local RelayMesh stack (API on `:8090`, auth on `:4433`):
 
 ```bash
 export RMESH_API_URL=http://localhost:8090
 export RMESH_AUTH_URL=http://localhost:4433
 ```
 
-`RMESH_STREAM_URL` defaults from `RMESH_API_URL` (`:8090` → `:8091`) for `traffic live`. Rebuild relaymesh-backend if live returns 401.
+`RMESH_STREAM_URL` defaults from `RMESH_API_URL` (`:8090` → `:8091`) for `traffic live`.
 
 ## Agent subcommand (Makefile shortcuts)
 
@@ -65,5 +75,5 @@ Then `source ~/.zshrc`. Re-run after upgrading rmesh. Dynamic completion (`netwo
 
 ## Related docs
 
-- [configure.md](configure.md) — config file, env vars, and command reference
+- [configure.md](configure.md) — config file, env vars and command reference
 - [traffic-columns.md](traffic-columns.md) — Traffic default columns shared with the web UI

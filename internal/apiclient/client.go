@@ -15,7 +15,7 @@ import (
 	"github.com/relaymonkey/relaymesh-edge/internal/session"
 )
 
-// Client calls RelayMesh REST APIs with a stored Kratos session.
+// Client calls RelayMesh REST APIs with a stored session.
 type Client struct {
 	baseURL      string
 	sessionToken string

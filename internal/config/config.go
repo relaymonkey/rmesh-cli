@@ -26,7 +26,7 @@ type Config struct {
 	Synthesise SynthesiseConfig  `yaml:"synthesise"`
 }
 
-// TransportConfig selects the local Phone API connection.
+// TransportConfig selects the local radio connection.
 type TransportConfig struct {
 	// URL scheme: serial:/dev/ttyUSB0, http://192.168.1.10:4403, ble://MAC
 	URL string `yaml:"url"`

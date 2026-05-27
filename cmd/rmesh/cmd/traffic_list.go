@@ -61,7 +61,7 @@ func init() {
 	trafficTextCmd.Flags().StringArrayVar(&trafficNodeFilters, "node-filter", nil, "Node dimension filter (node.<key>:op:value)")
 	trafficTextCmd.Flags().StringArrayVar(&trafficGatewayFilters, "gateway-filter", nil, "Gateway dimension filter (gateway.<key>:op:value)")
 
-	trafficLiveCmd.Flags().Bool("text", false, "Only print TEXT_MESSAGE_APP (portnum 1)")
+	trafficLiveCmd.Flags().Bool("text", false, "Only print text messages (packet_type=1)")
 
 	trafficListCmd.SilenceUsage = true
 	trafficTextCmd.SilenceUsage = true

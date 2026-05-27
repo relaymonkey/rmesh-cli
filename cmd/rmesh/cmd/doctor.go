@@ -19,7 +19,7 @@ import (
 
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
-	Short: "Diagnose config, transport, and NodeDB connectivity",
+	Short: "Diagnose config, transport, and node database connectivity",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ui := cliui.New(cmd.OutOrStdout())
 		errUI := cliui.New(cmd.ErrOrStderr())
@@ -45,7 +45,7 @@ var doctorCmd = &cobra.Command{
 			return err
 		}
 		if strings.Contains(cfg.Transport.URL, "Bluetooth-Incoming-Port") {
-			if err := ui.Warn("Bluetooth-Incoming-Port is not a Meshtastic device — use cu.usbmodem* or cu.usbserial*"); err != nil {
+			if err := ui.Warn("Bluetooth-Incoming-Port is not a mesh radio — use cu.usbmodem* or cu.usbserial*"); err != nil {
 				return err
 			}
 		}
@@ -75,7 +75,7 @@ var doctorCmd = &cobra.Command{
 		deviceFields := []cliui.Field{
 			{Key: "gateway", Value: gateway},
 			{Key: "channel", Value: fmt.Sprintf("%s (index %d)", channel.ChannelID, channel.Index)},
-			{Key: "nodes", Value: fmt.Sprintf("%d in NodeDB", len(state.Nodes))},
+			{Key: "nodes", Value: fmt.Sprintf("%d in node database", len(state.Nodes))},
 		}
 		if err := ui.Success("Device", deviceFields...); err != nil {
 			return err

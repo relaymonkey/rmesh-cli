@@ -11,7 +11,7 @@ import (
 	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
 )
 
-// Login performs a Kratos native (API) login and stores the session.
+// Login performs email/password sign-in and stores the session.
 func Login(ctx context.Context, email, password string) (Saved, error) {
 	email = strings.TrimSpace(email)
 	if email == "" || password == "" {

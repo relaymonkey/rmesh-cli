@@ -123,12 +123,12 @@ func defaultApplyOptions() ApplyOptions {
 //     which fires the `configChanged` observer, which makes
 //     `RadioInterface::applyModemConfig()` actually re-clock the radio
 //     with the new lora settings. This is what `meshtastic --set
-//     lora.tx_power 20` does, and it's what makes the value stick.
+//     lora.tx_power 20` does and it's what makes the value stick.
 //   - For sections that *do* require a reboot (region, role, security),
 //     the firmware schedules one after the per-section save. We watch
 //     for `FromRadio_Rebooted` in a short grace window after each
 //     send and surface it in the progress stream so the operator
-//     sees what's happening, and so the post-apply re-read knows the
+//     sees what's happening and so the post-apply re-read knows the
 //     radio is mid-reconnect.
 //
 // MeshPacket framing is deliberately matched to what every working
@@ -145,7 +145,7 @@ func defaultApplyOptions() ApplyOptions {
 //     instead of being dropped by some earlier filter.
 //
 // No `session_passkey`. Firmware (`AdminModule::handleAdminMessage`)
-// only enforces the passkey when `mp.from != 0`; local Phone API
+// only enforces the passkey when `mp.from != 0`; local device sessions
 // admin writes carry `from = 0`, so the field is intentionally
 // unused on this path.
 func Apply(

@@ -1,6 +1,6 @@
 package apiclient
 
-// Shapes mirror relaymesh-backend/openapi/relaymesh_api.yaml for the endpoints
+// Shapes match the RelayMesh REST API for the endpoints rmesh calls.
 // rmesh calls. Update here when those response schemas change.
 
 // Me is GET /api/v1/me (subset used by the CLI).

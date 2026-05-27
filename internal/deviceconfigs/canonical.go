@@ -7,7 +7,7 @@
 // and back through `set` without an `rmesh` rebuild.
 //
 // Cloud and edge agree on this shape — the backend stores it sealed
-// under the platform KEK, and the CLI reads / writes it byte-for-byte.
+// under the platform KEK and the CLI reads / writes it byte-for-byte.
 package deviceconfigs
 
 import (

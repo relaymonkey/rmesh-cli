@@ -1,4 +1,4 @@
-// Package transport opens Phone API connections without pulling BLE deps.
+// Package transport opens local radio connections without pulling BLE deps.
 package transport
 
 import (

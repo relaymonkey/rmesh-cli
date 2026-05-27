@@ -6,8 +6,8 @@ import (
 
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "Authenticate with RelayMesh (Kratos session)",
-	Long:  "Login stores a Kratos session for pair and other cloud commands. Set RMESH_API_URL and RMESH_AUTH_URL for local testing.",
+	Short: "Authenticate with RelayMesh",
+	Long:  "Sign in for cloud commands such as networks, traffic, and pairing. Set RMESH_API_URL and RMESH_AUTH_URL for local testing.",
 }
 
 func init() {

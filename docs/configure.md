@@ -2,16 +2,71 @@
 
 See [`config.example.yaml`](../config.example.yaml) for a annotated starting point.
 
+## Install
+
+Prebuilt binaries ship for:
+
+| OS | Architectures | Install |
+|---|---|---|
+| **macOS** | Intel (amd64) and Apple Silicon (arm64) | [Homebrew](#homebrew-macos) or [install script](#install-script-macos-linux) |
+| **Linux** | amd64, arm64, armv7 (Pi Zero W2, etc.) | [Install script](#install-script-macos-linux) |
+| **Windows** | amd64 | [PowerShell script](#windows) |
+
+[GitHub Releases](https://github.com/relaymonkey/rmesh-cli/releases) lists every published archive if you prefer a manual download.
+
+### Install script (macOS, Linux)
+
+Downloads the matching release asset and installs `rmesh` to `/usr/local/bin` (uses `sudo` when needed) or `~/.local/bin`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/relaymonkey/rmesh-cli/main/scripts/install.sh | bash
+```
+
+Pin a version or install directory:
+
+```bash
+RMESH_VERSION=v1.0.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/relaymonkey/rmesh-cli/main/scripts/install.sh)"
+RMESH_INSTALL_DIR="$HOME/.local/bin" bash -c "$(curl -fsSL https://raw.githubusercontent.com/relaymonkey/rmesh-cli/main/scripts/install.sh)"
+```
+
+Script source: [`scripts/install.sh`](../scripts/install.sh).
+
+### Homebrew (macOS)
+
+[Homebrew](https://brew.sh) on macOS — installs the Intel or Apple Silicon build automatically:
+
+```bash
+brew install --cask relaymonkey/tap/rmesh
+```
+
+Tap repo: [`relaymonkey/homebrew-tap`](https://github.com/relaymonkey/homebrew-tap).
+
+### Windows
+
+PowerShell — installs to `%LOCALAPPDATA%\Programs\rmesh` and adds it to your user `Path`:
+
+```powershell
+irm https://raw.githubusercontent.com/relaymonkey/rmesh-cli/main/scripts/install.ps1 | iex
+```
+
+Pin a version:
+
+```powershell
+$env:RMESH_VERSION = "v1.0.1"; irm https://raw.githubusercontent.com/relaymonkey/rmesh-cli/main/scripts/install.ps1 | iex
+```
+
+Script source: [`scripts/install.ps1`](../scripts/install.ps1).
+
 ## Environment
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `RMESH_CONFIG` | platform default (see below) | `rmesh agent` config file path (also `--config`) |
 | `RMESH_API_URL` | `https://mesh.relaymonkey.com` | RelayMesh REST API origin (`/api/v1/...`) |
-| `RMESH_AUTH_URL` | `https://auth.relaymonkey.com` | Ory Kratos public URL for `rmesh auth login` |
+| `RMESH_AUTH_URL` | `https://auth.relaymonkey.com` | RelayMesh auth URL for `rmesh auth login` |
 | `RMESH_SESSION_FILE` | `~/.rmesh/session.json` | Saved CLI session (mode `0600`; override path) |
 | `RMESH_DEFAULT_NETWORK_FILE` | `~/.rmesh/default-network.json` | Default network for cloud commands |
-| `RMESH_STREAM_URL` | same as `RMESH_API_URL` (`:8090` → `:8091`) | streamd WebSocket origin for `traffic live`. streamd must accept `X-Session-Token` (rebuild relaymesh-backend if live returns 401). |
+| `RMESH_STREAM_URL` | same as `RMESH_API_URL` (`:8090` → `:8091`) | WebSocket origin for `traffic live` (local dev often uses a separate port) |
 
 Default paths when env vars are unset:
 
@@ -29,8 +84,8 @@ Local dev — see [developing.md](developing.md).
 
 | Field | Description |
 |---|---|
-| `transport.url` | Phone API URL: `serial:/dev/ttyUSB0`, `http://192.168.1.10:4403`, `ble://MAC` |
-| `mqtt.broker_url` | RelayMesh EMQX broker (`mqtt://host:1883`) |
+| `transport.url` | Local radio connection URL: `serial:/dev/ttyUSB0`, `http://192.168.1.10:4403`, `ble://MAC` |
+| `mqtt.broker_url` | RelayMesh MQTT broker (`mqtt://host:1883`) |
 | `mqtt.username` / `mqtt.password` | Scoped credential from RelayMesh UI |
 | `mqtt.topic_prefix` | From credential issuance (`rm/n/<short_id>`) |
 
@@ -40,36 +95,34 @@ Free-form string map stamped on every publish via MQTT 5 user property `relaymes
 
 ## Synthesis cadence
 
-`rmesh agent` synthesises standard `ServiceEnvelope` packets from local NodeDB for kinds the cloud cannot infer from RF-only ghosts:
+`rmesh agent` synthesises **nodeinfo**, **position**, and **map report** traffic from the local node database for kinds the cloud cannot infer from RF-only ghosts.
 
-- `nodeinfo` — `NODEINFO_APP`
-- `position` — `POSITION_APP`
-- `mapreport` — `MAP_REPORT_APP`
-
-Each kind supports `interval`, `on_first_seen`, and `jitter`. Content-hash diffing avoids re-emitting unchanged rows; `--reset-cadence` clears timers.
+Each kind supports `interval`, `on_first_seen` and `jitter`. Content-hash diffing avoids re-emitting unchanged rows; `--reset-cadence` clears timers.
 
 Synthetic rows carry ingest source `edge:{agent_id}:nodedb` (passthrough uses `edge:{agent_id}`).
 
 ## Commands
 
 ```bash
+# Agent config file (~/.rmesh/config.yaml or /etc/rmesh/config.yaml)
 rmesh config edit       # open config in $EDITOR
 rmesh config -e         # same (git-style shorthand)
 rmesh config edit --config ../config.example.yaml
 
+# Cloud session
 rmesh auth login        # sign in (prompts for email/password)
 rmesh auth status       # verify session (like gh auth status)
 rmesh auth logout
+# Session is saved at ~/.rmesh/session.json after login.
 
-Native login stores a Kratos **session token** (`ory_st_*`) at `~/.rmesh/session.json`.
-The CLI sends it as `X-Session-Token` on API calls (not a browser cookie).
-
+# Networks (requires auth)
 rmesh network list      # networks you can access (alias: rmesh networks list)
-rmesh network use <id>    # set default network (UUID from network list)
+rmesh network use <id>  # set default network (UUID from network list)
 rmesh network current   # show default network
 rmesh network list -o json
 rmesh network list -o id  # one UUID per line (scripting)
 
+# Traffic (requires auth; filters/columns match the web UI — see traffic-columns.md)
 rmesh traffic list              # historical traffic (default network, limit 100)
 rmesh traffic list --filter packet_type:eq:1
 rmesh traffic list --fields ingest_ts,source_node_id,packet_type,id
@@ -77,24 +130,34 @@ rmesh traffic text              # adds filter packet_type:eq:1
 rmesh traffic text --fields ingest_ts,source_node_id,dest_node_id,decoded.value.text
 rmesh traffic list --filter source_node_id:eq:!abc123
 rmesh traffic list --node-filter node.long_name:contains:EU
+rmesh traffic list --gateway-filter gateway.id:eq:bridge-1
 rmesh traffic list --from 2026-05-25T00:00:00Z --to 2026-05-25T23:59:59Z
 rmesh traffic list --q "hello mesh"
+rmesh traffic list -o json      # table | json | yaml | id
 rmesh traffic live              # WebSocket stream (Ctrl+C to stop)
 rmesh traffic text live         # live text messages only
 rmesh traffic live --text       # same as traffic text live
+rmesh traffic text --network 742a055f-af02-4b99-a510-157ce0c34b9c  # override default network
+# Legacy alias: rmesh messages text
 
-# Override default network on any command:
-rmesh traffic text --network 742a055f-af02-4b99-a510-157ce0c34b9c
+# Device configs (device / file / cloud sources)
+rmesh device config show --from device                    # read live radio → stdout
+rmesh device config show --from cloud:<network>/<label>   # read saved cloud config
+rmesh device config copy --from device --to ./backup.yaml # snapshot radio to file
+rmesh device config copy --from ./eu-868.yaml --to device # apply file to radio
+rmesh device config copy --from cloud:home/eu-868 --to device --dry-run
+rmesh device config edit --from device                    # $EDITOR round-trip
+rmesh device config list --network <id>                   # saved configs on a network
+rmesh device config promote --from cloud:<n>/mine/<label> --to <network>
+# Sources/destinations: device[:url], file:<path>, cloud:<network>/<label>, - (stdout)
+# Deprecated aliases: get → show; set → copy
 
-# --fields and --filter use the same ids as the Traffic UI (no CLI aliases).
-# --fields accepts any column id; values are read from the envelope JSON by path.
-# Only "summary" is computed client-side (same as the UI Summary column).
-
-# Legacy alias (still works):
-rmesh messages text
-
-rmesh agent doctor      # validate config + USB/node connectivity
-rmesh agent observe     # JSONL dry-run, no MQTT
+# Local agent (local radio → RelayMesh cloud)
+rmesh agent doctor      # validate config, transport, and node database connectivity
+rmesh agent observe     # JSONL dry-run, no cloud publish
 rmesh agent run         # production publish
 rmesh agent pair        # requires auth; cloud pairing API stub
+
+# Shell
+eval "$(rmesh completion zsh)"   # bash | fish | powershell also supported
 ```

@@ -13,7 +13,7 @@ import (
 
 const sessionCookieName = "ory_kratos_session"
 
-// Saved holds a Kratos session for RelayMesh API calls.
+// Saved holds a RelayMesh CLI session for API calls.
 type Saved struct {
 	SessionToken string    `json:"session_token"`
 	APIURL       string    `json:"api_url"`
@@ -22,13 +22,12 @@ type Saved struct {
 	SavedAt      time.Time `json:"saved_at"`
 }
 
-// SessionTokenHeader returns the X-Session-Token value for native Kratos sessions.
+// SessionTokenHeader returns the session token sent on API requests.
 func (s Saved) SessionTokenHeader() string {
 	return s.SessionToken
 }
 
-// CookieHeader returns a browser-style Cookie header. Native login tokens
-// (ory_st_*) must use SessionTokenHeader / X-Session-Token instead.
+// CookieHeader returns a browser-style Cookie header for legacy flows.
 func (s Saved) CookieHeader() string {
 	return sessionCookieName + "=" + s.SessionToken
 }

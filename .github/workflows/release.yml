@@ -28,9 +28,17 @@ jobs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
     steps:
+      - uses: actions/create-github-app-token@v3
+        id: bot-token
+        with:
+          app-id: ${{ vars.RM_BOT_APP_ID }}
+          private-key: ${{ secrets.RM_BOT_PRIVATE_KEY }}
+          owner: relaymonkey
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.bot-token.outputs.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,7 +54,7 @@ jobs:
       - name: Release
         id: semantic
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.bot-token.outputs.token }}
         run: |
           output=$(pnpm exec semantic-release)
           echo "$output"
@@ -63,10 +71,18 @@ jobs:
     if: needs.release.outputs.new_release_published == 'true'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/create-github-app-token@v3
+        id: bot-token
+        with:
+          app-id: ${{ vars.RM_BOT_APP_ID }}
+          private-key: ${{ secrets.RM_BOT_PRIVATE_KEY }}
+          owner: relaymonkey
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ needs.release.outputs.new_release_version }}
+          token: ${{ steps.bot-token.outputs.token }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
@@ -75,4 +91,4 @@ jobs:
           version: "~> v2"
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.bot-token.outputs.token }}

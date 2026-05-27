@@ -103,7 +103,7 @@ func topLevelConfigEndpoints(kind ConfigEndpointKind, toComplete string) []Item 
 
 	switch kind {
 	case ConfigEndpointSource:
-		add("device", "live Meshtastic device")
+		add("device", "live mesh radio")
 		add("file:", "local JSON/YAML file")
 		add("cloud:", "saved cloud config")
 	case ConfigEndpointDestGet:
@@ -147,7 +147,7 @@ func prefixCloudNetworks(ctx context.Context, toComplete, netPrefix string) ([]I
 	// CLI URI grammar is scope creep on that role. Slug is the human
 	// URL handle for the frontend; name is display-only and shell-
 	// unfriendly. The UUID is the canonical key the backend uses
-	// everywhere, paste-safe, and unambiguous. ResolveNetworkRef stays
+	// everywhere, paste-safe and unambiguous. ResolveNetworkRef stays
 	// permissive (UUID + slug + short_id + name) so operators with
 	// alternate forms in their shell history don't break — this only
 	// changes what we *suggest*, not what we accept.

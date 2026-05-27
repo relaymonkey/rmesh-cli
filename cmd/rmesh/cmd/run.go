@@ -14,7 +14,7 @@ import (
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run the agent and publish to RelayMesh MQTT",
+	Short: "Run the agent and publish to RelayMesh",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path, err := loadConfig()
 		if err != nil {

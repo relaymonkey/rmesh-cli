@@ -15,7 +15,7 @@ import (
 // Two visual modes:
 //
 //   - **TTY**: per-section ✓ lines stream into the terminal as the
-//     admin messages go out, and the long waits ("waiting for device
+//     admin messages go out and the long waits ("waiting for device
 //     to reboot…", "re-reading device state…") are accompanied by an
 //     inline ASCII-braille spinner that overwrites itself with `\r`.
 //   - **Non-TTY** (CI, tee, redirect): plain log lines, one per event,

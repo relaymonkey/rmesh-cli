@@ -11,8 +11,7 @@ import (
 )
 
 // RedactedPlaceholder is the string substituted for PSK / admin-key
-// fields when `--reveal-secrets` was not passed. Matches the backend
-// redactor (relaymesh-backend/internal/deviceconfigs/redact.go).
+// fields when `--reveal-secrets` was not passed.
 const RedactedPlaceholder = "***"
 
 // Redact returns a copy of `p` with PSK / admin-key material replaced

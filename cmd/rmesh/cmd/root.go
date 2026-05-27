@@ -52,7 +52,7 @@ func Execute() error {
 var rootCmd = &cobra.Command{
 	Use:   "rmesh",
 	Short: "RelayMesh CLI",
-	Long:  "rmesh is the RelayMesh CLI — auth, networks, traffic, and config against the cloud API. Use `rmesh agent` for local Meshtastic node ingest (Phone API → MQTT).",
+	Long:  "rmesh is the RelayMesh CLI — auth, networks, traffic and config against the cloud API. Use `rmesh agent` for local radio ingest.",
 }
 
 func init() {

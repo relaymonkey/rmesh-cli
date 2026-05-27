@@ -21,7 +21,7 @@ All documentation files are **`.md`**.
 
 - Keep it **clear and concise** — happy path in under two minutes of reading.
 - Copy-paste quick start commands; minimal prose.
-- Link to `docs/` for configuration tables, dev setup, and contributor workflow.
+- Link to `docs/` for configuration tables, dev setup and contributor workflow.
 - **Do not** grow the README with full config keys, Makefile catalogues, or CI/release internals.
 
 ## `docs/` rules

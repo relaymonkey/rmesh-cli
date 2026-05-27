@@ -31,7 +31,7 @@ var deviceConfigEditCmd = &cobra.Command{
 	Short: "Open a device configuration in $EDITOR and write the result back to its source",
 	Long: "Read a device configuration from any source (live device, local\n" +
 		"file, or saved cloud config), open the canonical JSON / YAML in\n" +
-		"your default editor, and write the edited payload back to the\n" +
+		"your default editor and write the edited payload back to the\n" +
 		"same source on save.\n\n" +
 		"The source resolved by --from is also the destination — there is\n" +
 		"no --to. Examples:\n\n" +

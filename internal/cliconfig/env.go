@@ -61,13 +61,13 @@ func APIURL() string {
 	return getenv(EnvAPIURL, DefaultAPIURL)
 }
 
-// AuthURL is the Ory Kratos public origin used for CLI login.
+// AuthURL is the RelayMesh auth origin used for CLI login.
 func AuthURL() string {
 	return getenv(EnvAuthURL, DefaultAuthURL)
 }
 
 // StreamURL is the origin for live traffic (WebSocket).
-// Defaults to APIURL, except :8090 (local backend) → :8091 (streamd).
+// Defaults to APIURL, except :8090 (local API) → :8091 (local live stream).
 func StreamURL() string {
 	if v := strings.TrimSpace(os.Getenv(EnvStreamURL)); v != "" {
 		return strings.TrimRight(v, "/")
@@ -79,7 +79,7 @@ func StreamURL() string {
 	return api
 }
 
-// LiveWSURL builds ws(s)://…/api/v1/networks/{id}/live for streamd.
+// LiveWSURL builds ws(s)://…/api/v1/networks/{id}/live for live traffic.
 func LiveWSURL(networkID string) (string, error) {
 	base := StreamURL()
 	u, err := url.Parse(base)

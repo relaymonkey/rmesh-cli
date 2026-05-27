@@ -15,8 +15,8 @@ import (
 
 var observeCmd = &cobra.Command{
 	Use:   "observe",
-	Short: "Dry-run: Phone API only, print JSONL to stdout (no MQTT)",
-	Long:  "Validate transport, NodeDB synthesis, and envelope shape before enabling production publish.",
+	Short: "Dry-run: local radio only, print JSONL to stdout (no cloud publish)",
+	Long:  "Validate transport, node-database synthesis, and envelope shape before enabling production publish.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path, err := loadConfig()
 		if err != nil {

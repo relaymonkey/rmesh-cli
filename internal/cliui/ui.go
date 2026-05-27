@@ -13,7 +13,7 @@ type Field struct {
 }
 
 // UI renders human-facing CLI messages — success confirmations, status panels,
-// hints, and stream notices. Structured list/get output belongs in clioutput
+// hints and stream notices. Structured list/get output belongs in clioutput
 // (-o table|json|yaml|id), not here.
 type UI struct {
 	w   io.Writer

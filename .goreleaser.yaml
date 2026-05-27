@@ -20,8 +20,6 @@ builds:
       - "7"
     ignore:
       - goos: darwin
-        goarch: amd64
-      - goos: darwin
         goarch: arm
       - goos: windows
         goarch: arm64
@@ -50,3 +48,36 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+homebrew_casks:
+  - name: rmesh
+    ids:
+      - default
+    binaries:
+      - rmesh
+    description: Command-line tool for RelayMesh
+    homepage: https://github.com/relaymonkey/rmesh-cli
+    caveats: |
+      Shell tab completion (optional):
+
+        eval "$(rmesh completion zsh)"
+
+      Dynamic completion requires rmesh auth login.
+    generate_completions_from_executable:
+      executable: rmesh
+      args:
+        - completion
+      shell_parameter_format: cobra
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/rmesh"]
+          end
+    repository:
+      owner: relaymonkey
+      name: homebrew-tap
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    commit_author:
+      name: relaymonkey-bot[bot]
+      email: 991716+relaymonkey-bot[bot]@users.noreply.github.com

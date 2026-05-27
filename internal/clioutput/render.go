@@ -17,7 +17,7 @@ type Table struct {
 }
 
 // Render writes structured command output. Pass table for table mode, raw for
-// json/yaml, and lines for id mode (one value per line, no header).
+// json/yaml and lines for id mode (one value per line, no header).
 func Render(w io.Writer, format Format, table Table, raw any, lines []string) error {
 	switch format {
 	case FormatTable:

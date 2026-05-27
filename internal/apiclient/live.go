@@ -92,7 +92,7 @@ func handshakeError(wsURL string, resp *http.Response, dialErr error) error {
 	msg := fmt.Sprintf("%s (%s)", resp.Status, detail)
 	if resp.StatusCode == http.StatusUnauthorized {
 		if strings.Contains(detail, "missing session cookie") {
-			msg += " — streamd is running old auth middleware; rebuild/restart relaymesh-backend cmd/streamd so it accepts X-Session-Token"
+			msg += " — live stream rejected the CLI session; run `rmesh auth login` or check RMESH_STREAM_URL"
 		} else {
 			msg += " — run `rmesh auth login` or check RMESH_STREAM_URL"
 		}

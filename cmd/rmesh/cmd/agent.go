@@ -4,8 +4,8 @@ import "github.com/spf13/cobra"
 
 var agentCmd = &cobra.Command{
 	Use:   "agent",
-	Short: "Local node ingest — Phone API to RelayMesh MQTT",
-	Long:  "Connect to a local Meshtastic node and forward observed packets to RelayMesh.",
+	Short: "Local node ingest — radio to RelayMesh cloud",
+	Long:  "Connect to a local mesh radio and forward observed packets to RelayMesh.",
 }
 
 func init() {

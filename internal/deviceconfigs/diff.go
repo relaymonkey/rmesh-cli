@@ -180,7 +180,7 @@ func orderedDiffKeys(a, b map[string]json.RawMessage, preferred []string) []stri
 // message as a full submessage write, even when the staged value
 // is byte-identical to what's already in flash. Pushing 21
 // SetConfig + 8 SetChannel messages on every apply burns radio
-// flash, multiplies reboot risk, and makes the post-apply drift
+// flash, multiplies reboot risk and makes the post-apply drift
 // counter ambiguous (which of the 29 messages didn't take?). By
 // filtering down to the actual delta first, "drift > 0" tells the
 // operator exactly which submessages the firmware refused. See

@@ -14,7 +14,7 @@ type ChannelMeta struct {
 	ChannelID string
 }
 
-// WrapPassthrough builds a ServiceEnvelope for a packet heard over Phone API.
+// WrapPassthrough builds a cloud envelope for a packet heard from the local radio.
 func WrapPassthrough(packet *proto.MeshPacket, gatewayID, channelID string) *proto.ServiceEnvelope {
 	return &proto.ServiceEnvelope{
 		Packet:    packet,

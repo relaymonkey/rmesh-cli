@@ -58,7 +58,7 @@ type State struct {
 // Unknown submessages from newer firmware round-trip through the
 // canonical JSON path in internal/deviceconfigs, so a firmware
 // update is *not* a hard requirement for `rmesh` to keep working —
-// only newly-named submessages need a typed field added here, and
+// only newly-named submessages need a typed field added here and
 // only if a CLI flag wants to special-case them (e.g. region check).
 func GetState(ctx context.Context, transport meshtastic.HardwareTransport) (State, error) {
 	configID := uint32(rand.Int())
@@ -100,7 +100,7 @@ func GetState(ctx context.Context, transport meshtastic.HardwareTransport) (Stat
 
 // absorbConfig stores the wire-side Config.* variant into the right
 // typed slot on State. Unknown variants are silently dropped — the
-// canonicalisation step picks up only the ones it knows about, and
+// canonicalisation step picks up only the ones it knows about and
 // the protojson path catches the rest if we add a typed accessor
 // later.
 func absorbConfig(s *State, cfg *proto.Config) {

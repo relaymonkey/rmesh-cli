@@ -24,10 +24,9 @@ import (
 // each verb's flag block stays adjacent to its handler.
 var deviceConfigCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Show / copy / edit / list / promote full-surface Meshtastic device configurations",
-	Long: `Read and write the full Meshtastic device-configuration surface
-(every Config.* and ModuleConfig.* submessage + all channel rows)
-using a uniform --from / --to source grammar.
+	Short: "Show / copy / edit / list / promote full-surface device configurations",
+	Long: `Read and write the full device-configuration surface
+(settings, modules, and channel rows) using a uniform --from / --to source grammar.
 
 Verbs:
 
@@ -46,7 +45,7 @@ A source/destination token is one of:
   -                            stdout (only valid as --to)
 
 Mental model: ` + "`show`" + ` reads, ` + "`copy`" + ` transfers. ` + "`copy`" + ` is
-destination-agnostic — file, cloud, and device are all valid ` + "`--to`" + `
+destination-agnostic — file, cloud and device are all valid ` + "`--to`" + `
 targets; the side effects (radio reboot, cloud row creation, file
 write) live in the per-destination handler. Use ` + "`copy --dry-run`" + ` to
 preview a device apply.

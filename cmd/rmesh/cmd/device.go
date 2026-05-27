@@ -19,8 +19,8 @@ import (
 // ingest loop).
 var deviceCmd = &cobra.Command{
 	Use:   "device",
-	Short: "Interact with a local Meshtastic device",
-	Long: `Interact with a local Meshtastic device.
+	Short: "Interact with a local mesh radio",
+	Long: `Interact with a local mesh radio.
 
 Today this group only carries the ` + "`config`" + ` subcommand. The bare
 ` + "`rmesh device <verb>`" + ` namespace is reserved for future device-

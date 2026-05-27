@@ -18,7 +18,7 @@ var deviceConfigGetCmd = &cobra.Command{
 	Hidden:     true,
 	Short:      "Read a device configuration from any source and render or save it",
 	Long: `Read a device configuration from a live device, a local file, or
-a saved cloud config, and render it to stdout or save it to a file.
+a saved cloud config and render it to stdout or save it to a file.
 
 Examples:
 

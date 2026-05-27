@@ -12,7 +12,7 @@ When `--fields` is omitted, rmesh uses fixed default column lists. The web UI us
 |-----------|--------|
 | `ingest_ts` | |
 | `source_node_id` | |
-| `packet_type` | Meshtastic portnum |
+| `packet_type` | Packet type numeric id |
 | `channel_index` | |
 | `payload_size` | |
 | `gateway_id` | |
@@ -20,7 +20,7 @@ When `--fields` is omitted, rmesh uses fixed default column lists. The web UI us
 | `encrypted` | Computed client-side |
 
 **rmesh:** `internal/climessages.DefaultListFields`  
-**Frontend:** `relaymesh-frontend/src/components/networks/traffic/columns.tsx` → `defaultColumnIds`
+**Web UI:** Traffic table default columns
 
 ### Text list (`rmesh traffic text`)
 
@@ -39,7 +39,7 @@ Update **all** of:
 
 1. This file
 2. `internal/climessages/fields.go`
-3. `relaymesh-frontend/.../traffic/columns.tsx` (`defaultColumnIds`)
+3. RelayMesh web UI traffic default columns
 
 The API field catalog (`GET /messages/fields`) drives dynamic decoded columns in the UI; rmesh tab-completion reads it at runtime. Static defaults above are the fallback when no saved preference / no `--fields` flag.
 

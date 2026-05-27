@@ -23,7 +23,7 @@ var deviceConfigShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Read a device configuration from any source and render it to stdout",
 	Long: `Read a configuration from a live device, a local file, or a saved
-cloud config, and render it to stdout. ` + "`show`" + ` never writes — for
+cloud config and render it to stdout. ` + "`show`" + ` never writes — for
 file-on-disk backups use ` + "`copy --to <path>`" + `.
 
 Examples:
