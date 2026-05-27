@@ -122,7 +122,7 @@ func shortenID(id string) string {
 func init() {
 	deviceConfigCmd.AddCommand(deviceConfigListCmd)
 	f := deviceConfigListCmd.Flags()
-	f.StringVarP(&listFlags.network, "network", "n", "", "Network slug, short id, or UUID (defaults to `rmesh network use`)")
+	f.StringVarP(&listFlags.network, "network", "n", "", "Network UUID (defaults to `rmesh network use`)")
 	f.StringVarP(&listFlags.output, "output", "o", "table", "Output format: table, json, yaml")
 	f.BoolVar(&listFlags.mine, "mine", false, "Only my personal device configs")
 	f.BoolVar(&listFlags.templates, "templates", false, "Only the network's templates")

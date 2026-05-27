@@ -27,7 +27,7 @@ var trafficCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(trafficCmd)
 
-	trafficCmd.PersistentFlags().StringVarP(&trafficNetwork, "network", "n", "", "Network UUID, slug, short_id, or name (default: saved via network use)")
+	trafficCmd.PersistentFlags().StringVarP(&trafficNetwork, "network", "n", "", "Network UUID (default: saved via network use)")
 	trafficCmd.PersistentFlags().StringVarP(&trafficOutput, "output", "o", "table", "Output format: table, json, yaml, id")
 	trafficCmd.PersistentFlags().IntVarP(&trafficLimit, "limit", "l", 0, "Max rows (default: API default 100)")
 	trafficCmd.PersistentFlags().StringVar(&trafficFields, "fields", "", "Traffic UI column ids (comma-separated; any path on the envelope JSON)")

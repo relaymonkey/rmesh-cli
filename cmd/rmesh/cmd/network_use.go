@@ -12,7 +12,7 @@ import (
 var networkUseCmd = &cobra.Command{
 	Use:   "use NETWORK",
 	Short: "Set the default network for commands that accept --network",
-	Long:  "NETWORK may be a UUID, slug, short_id, or exact name from `rmesh network list`.",
+	Long:  "NETWORK is the network UUID from `rmesh network list` (or `rmesh network list -o id`).",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		_, client, err := requireSession()
@@ -34,8 +34,6 @@ var networkUseCmd = &cobra.Command{
 		ui := cliui.New(cmd.OutOrStdout())
 		return ui.Success("Default network · "+n.Name,
 			cliui.Field{Key: "id", Value: n.ID},
-			cliui.Field{Key: "slug", Value: n.Slug},
-			cliui.Field{Key: "short_id", Value: n.ShortID},
 		)
 	},
 }
@@ -56,8 +54,6 @@ var networkCurrentCmd = &cobra.Command{
 		}
 		return ui.Status(headline,
 			cliui.Field{Key: "id", Value: def.NetworkID},
-			cliui.Field{Key: "slug", Value: def.Slug},
-			cliui.Field{Key: "short_id", Value: def.ShortID},
 			cliui.Field{Key: "set at", Value: def.SetAt.Format("2006-01-02 15:04:05 UTC")},
 		)
 	},

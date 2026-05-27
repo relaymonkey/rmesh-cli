@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	// Network references (slug, short_id, uuid, name).
+	// Network references (UUID).
 	clicomplete.RegisterArgs(networkUseCmd, clicomplete.NetworksProvider)
 	clicomplete.RegisterFlag(trafficCmd, "network", clicomplete.NetworksProvider)
 

@@ -65,7 +65,7 @@ Native login stores a Kratos **session token** (`ory_st_*`) at `~/.rmesh/session
 The CLI sends it as `X-Session-Token` on API calls (not a browser cookie).
 
 rmesh network list      # networks you can access (alias: rmesh networks list)
-rmesh network use ID    # set default network (UUID, slug, short_id, or name)
+rmesh network use <id>    # set default network (UUID from network list)
 rmesh network current   # show default network
 rmesh network list -o json
 rmesh network list -o id  # one UUID per line (scripting)
@@ -84,7 +84,7 @@ rmesh traffic text live         # live text messages only
 rmesh traffic live --text       # same as traffic text live
 
 # Override default network on any command:
-rmesh traffic text --network my-network-slug
+rmesh traffic text --network 742a055f-af02-4b99-a510-157ce0c34b9c
 
 # --fields and --filter use the same ids as the Traffic UI (no CLI aliases).
 # --fields accepts any column id; values are read from the envelope JSON by path.

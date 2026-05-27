@@ -99,7 +99,7 @@ func formatItems(items []Item) []string {
 	return out
 }
 
-// NetworksProvider completes network slug, short_id, UUID, and name.
+// NetworksProvider completes network UUIDs.
 func NetworksProvider(ctx context.Context, toComplete string) ([]Item, error) {
 	nets, err := cachedNetworks(ctx)
 	if err != nil {
@@ -107,26 +107,17 @@ func NetworksProvider(ctx context.Context, toComplete string) ([]Item, error) {
 	}
 	prefix := strings.ToLower(toComplete)
 	var items []Item
-	seen := map[string]struct{}{}
-	add := func(value, desc string) {
-		if value == "" {
-			return
-		}
-		if _, ok := seen[value]; ok {
-			return
-		}
-		if prefix != "" && !strings.HasPrefix(strings.ToLower(value), prefix) {
-			return
-		}
-		seen[value] = struct{}{}
-		items = append(items, Item{Value: value, Description: desc})
-	}
 	for _, n := range nets {
-		desc := fmt.Sprintf("%s (%s)", n.Name, n.ID)
-		add(n.Slug, desc)
-		add(n.ShortID, desc)
-		add(n.ID, n.Name)
-		add(n.Name, n.ID)
+		if n.ID == "" {
+			continue
+		}
+		if prefix != "" && !strings.HasPrefix(strings.ToLower(n.ID), prefix) {
+			continue
+		}
+		items = append(items, Item{
+			Value:       n.ID,
+			Description: fmt.Sprintf("%s (%s)", n.Name, n.ID),
+		})
 	}
 	return items, nil
 }

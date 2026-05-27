@@ -23,7 +23,7 @@ func ResolveID(ctx context.Context, client apiclient.CloudClient, ref string) (s
 	def, err := clidefault.Load()
 	if err != nil {
 		if errors.Is(err, clidefault.ErrNotSet) {
-			return "", fmt.Errorf("no network specified — use --network or: rmesh network use <id|slug>")
+			return "", fmt.Errorf("no network specified — use --network or: rmesh network use <id>")
 		}
 		return "", err
 	}

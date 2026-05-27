@@ -45,15 +45,13 @@ func runNetworkList(cmd *cobra.Command) error {
 
 func networkListTable(items []apiclient.Network) clioutput.Table {
 	table := clioutput.Table{
-		Headers: []string{"NAME", "SLUG", "VISIBILITY", "SHORT_ID", "ID"},
+		Headers: []string{"NAME", "ID", "VISIBILITY"},
 	}
 	for _, n := range items {
 		table.Rows = append(table.Rows, []string{
 			n.Name,
-			n.Slug,
-			n.Visibility,
-			n.ShortID,
 			n.ID,
+			n.Visibility,
 		})
 	}
 	return table

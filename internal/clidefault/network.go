@@ -78,4 +78,4 @@ func Clear() error {
 }
 
 // ErrNotSet is returned when no default network is configured.
-var ErrNotSet = errors.New("no default network — run: rmesh network use <id|slug>")
+var ErrNotSet = errors.New("no default network — run: rmesh network use <id>")

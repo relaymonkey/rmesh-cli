@@ -7,7 +7,7 @@ Public, Apache-2.0 command-line tool for RelayMesh — authenticate, manage netw
 ```bash
 rmesh auth login
 rmesh network list
-rmesh network use <slug>
+rmesh network use <id>
 rmesh traffic text
 ```
 
