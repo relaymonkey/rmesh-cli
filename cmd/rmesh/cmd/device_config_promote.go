@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
+	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
 )
 
 // promoteFlags is the dedicated `promote` flag block. Kept separate
@@ -133,11 +135,21 @@ Examples:
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(),
-			"promoted cloud:%s/mine/%s → cloud:%s/template/%s (id=%s, visibility=%s)\n",
-			src.network, src.label, src.network, out.Label, out.ID, out.Visibility,
+		fromPath := deviceconfigs.Source{
+			Kind:    deviceconfigs.SourceCloud,
+			Network: src.network,
+			Owner:   deviceconfigs.CloudOwnerMine,
+			Label:   src.label,
+		}.String()
+		toPath := deviceconfigs.Source{
+			Kind:    deviceconfigs.SourceCloud,
+			Network: src.network,
+			Owner:   deviceconfigs.CloudOwnerTemplate,
+			Label:   out.Label,
+		}.String()
+		return cliui.New(cmd.OutOrStdout()).PromotedCloudConfig(
+			out.Label, fromPath, toPath, out.ID, out.Visibility,
 		)
-		return nil
 	},
 }
 

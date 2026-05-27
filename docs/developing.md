@@ -49,19 +49,26 @@ First-time agent setup: copy [`config.example.yaml`](../config.example.yaml) to 
 
 ## CLI output conventions
 
-Two layers:
+Three categories (see `D-217` in agent-specifications):
 
-| Layer | Package | When |
-|-------|---------|------|
-| **Data** | `internal/clioutput` | List/get commands with `-o table\|json\|yaml\|id` — machine-friendly rows |
-| **Messages** | `internal/cliui` | Success confirmations, status panels, hints, stream notices |
+| Category | Package | When |
+|----------|---------|------|
+| **Structured data** | `internal/clioutput` | List/get with `-o table\|json\|yaml\|id` — machine-friendly, no symbols |
+| **Outcomes** | `internal/cliui` | Completed mutations and dry-run intent (`Success` / `Status`; helpers in `cliui/messages.go`) |
+| **Operational progress** | plain `fmt` (or `cliui.Stream` for long runs) | Diffs, apply summaries, live-traffic status — keep grep-friendly |
 
-Human messages use ✓ / ✗ / ● / → on TTY (plain `ok` / `error` / `->` when piped or `NO_COLOR` set). Example:
+Human outcomes use ✓ / ✗ / ● / → on TTY (plain `ok` / `error` / `->` when piped or `NO_COLOR` set). Examples:
 
 ```
 ✓ Default network · EU
   id · 742a055f-af02-4b99-a510-157ce0c34b9c
+
+✓ Saved cloud config · eu-868
+  path · cloud:home/mine/eu-868
+  id   · a46229d5-0f27-44e8-9350-5737260cfb25
 ```
+
+Do **not** wrap list/get JSON or apply diffs in `cliui` — those stay raw for scripts and logs.
 
 ## Shell tab completion (zsh)
 

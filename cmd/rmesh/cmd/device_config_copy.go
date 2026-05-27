@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
 )
 
@@ -128,10 +129,15 @@ unless ` + "`--allow-region-change`" + ` is passed.`,
 			})
 		case deviceconfigs.SourceCloud:
 			if copyFlags.dryRun {
-				fmt.Fprintf(cmd.OutOrStdout(),
-					"dry-run — would upload to cloud:%s as label=%q (description=%q)\n",
-					dst.Network, firstNonEmpty(copyFlags.label, dst.Label), copyFlags.description)
-				return nil
+				label := firstNonEmpty(copyFlags.label, dst.Label)
+				fields := []cliui.Field{
+					{Key: "network", Value: dst.Network},
+					{Key: "label", Value: label},
+				}
+				if copyFlags.description != "" {
+					fields = append(fields, cliui.Field{Key: "description", Value: copyFlags.description})
+				}
+				return cliui.New(cmd.OutOrStdout()).DryRun("would save to cloud", fields...)
 			}
 			return uploadToCloud(ctx, cmd, dst, payload, fwHint, client, cloudUploadOptions{
 				Label:       copyFlags.label,
@@ -155,8 +161,13 @@ func writePayloadToFile(
 	dryRun bool,
 ) error {
 	if dryRun {
-		fmt.Fprintf(cmd.OutOrStdout(), "dry-run — would write to %s\n", dst)
-		return nil
+		target := dst.String()
+		if dst.Kind == deviceconfigs.SourceFile {
+			target = dst.Path
+		}
+		return cliui.New(cmd.OutOrStdout()).DryRun("would write file",
+			cliui.Field{Key: "path", Value: target},
+		)
 	}
 	fmtChoice, err := deviceconfigs.ParseFormat(outFormat)
 	if err != nil {

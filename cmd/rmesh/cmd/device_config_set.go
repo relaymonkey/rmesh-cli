@@ -12,6 +12,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	rmdevice "github.com/relaymonkey/relaymesh-edge/internal/device"
 	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
 	rmtransport "github.com/relaymonkey/relaymesh-edge/internal/transport"
@@ -324,8 +325,13 @@ func uploadToCloud(
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "saved cloud:%s/mine/%s (id=%s)\n", dst.Network, out.Label, out.ID)
-	return nil
+	path := deviceconfigs.Source{
+		Kind:    deviceconfigs.SourceCloud,
+		Network: dst.Network,
+		Owner:   deviceconfigs.CloudOwnerMine,
+		Label:   out.Label,
+	}.String()
+	return cliui.New(cmd.OutOrStdout()).SavedCloudConfig(out.Label, path, out.ID)
 }
 
 func init() {

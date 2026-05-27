@@ -14,6 +14,7 @@ import (
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
 	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
 )
 
@@ -147,8 +148,7 @@ var deviceConfigEditCmd = &cobra.Command{
 			return fmt.Errorf("re-read temp file: %w", err)
 		}
 		if bytes.Equal(originalBytes, editedBytes) {
-			fmt.Fprintf(cmd.OutOrStdout(), "no changes — %s left untouched\n", src)
-			return nil
+			return cliui.New(cmd.OutOrStdout()).NoChanges(src.String())
 		}
 
 		edited, err := deviceconfigs.ParseBytes(editedBytes, tmpPath)
@@ -164,8 +164,7 @@ var deviceConfigEditCmd = &cobra.Command{
 			if err := deviceconfigs.WriteToFile(src.Path, edited); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", src.Path)
-			return nil
+			return cliui.New(cmd.OutOrStdout()).WroteFile(src.Path)
 
 		case deviceconfigs.SourceDevice:
 			return applyPayloadToDevice(ctx, cmd, src, edited, applyOptions{
@@ -177,8 +176,9 @@ var deviceConfigEditCmd = &cobra.Command{
 
 		case deviceconfigs.SourceCloud:
 			if editFlags.dryRun {
-				fmt.Fprintln(cmd.OutOrStdout(), "dry-run — PATCH not sent")
-				return nil
+				return cliui.New(cmd.OutOrStdout()).DryRun("PATCH not sent",
+					cliui.Field{Key: "source", Value: src.String()},
+				)
 			}
 			c := concrete(client)
 			if c == nil {
@@ -190,8 +190,11 @@ var deviceConfigEditCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("update %s: %w", src, err)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "updated cloud:%s/%s (id=%s)\n", src.Network, out.Label, out.ID)
-			return nil
+			updated := src
+			updated.Label = out.Label
+			return cliui.New(cmd.OutOrStdout()).UpdatedCloudConfig(
+				out.Label, updated.String(), out.ID,
+			)
 		}
 		return fmt.Errorf("unsupported source kind: %s", src)
 	},
