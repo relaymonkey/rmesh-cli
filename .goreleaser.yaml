@@ -3,14 +3,32 @@ version: 2
 project_name: rmesh
 
 builds:
-  - id: rmesh
+  # Darwin needs CGO + the macOS SDK because the BLE transport pulls in
+  # github.com/tinygo-org/cbgo (CoreBluetooth bindings). Built natively on
+  # the macOS runner.
+  - id: rmesh-darwin
+    binary: rmesh
+    main: ./cmd/rmesh
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+  # Linux and Windows cross-compile cleanly with CGO disabled — the BLE
+  # backends on those platforms are pure Go (godbus on linux, winrt-go on
+  # windows), so they build from any runner.
+  - id: rmesh-cross
     binary: rmesh
     main: ./cmd/rmesh
     env:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
       - windows
     goarch:
       - amd64
@@ -19,8 +37,6 @@ builds:
     goarm:
       - "7"
     ignore:
-      - goos: darwin
-        goarch: arm
       - goos: windows
         goarch: arm64
       - goos: windows
@@ -33,6 +49,9 @@ builds:
 
 archives:
   - id: default
+    ids:
+      - rmesh-darwin
+      - rmesh-cross
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
     formats: [tar.gz]
     format_overrides:
