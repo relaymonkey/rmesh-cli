@@ -9,6 +9,8 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/ory/client-go v1.22.42
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
+	github.com/tinygo-org/cbgo v0.0.4
 	go.bug.st/serial v1.7.1
 	golang.org/x/term v0.43.0
 	google.golang.org/protobuf v1.36.11
@@ -37,8 +39,6 @@ require (
 	github.com/soypat/cyw43439 v0.1.1 // indirect
 	github.com/soypat/lneto v0.1.0 // indirect
 	github.com/soypat/seqs v0.0.0-20260125140838-2c1c6b1bd69e // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/tinygo-org/cbgo v0.0.4 // indirect
 	github.com/tinygo-org/pio v0.3.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp v0.0.0-20260527015227-08cc5374adb3 // indirect
