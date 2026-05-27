@@ -24,8 +24,7 @@ var deviceCmd = &cobra.Command{
 
 Today this group only carries the ` + "`config`" + ` subcommand. The bare
 ` + "`rmesh device <verb>`" + ` namespace is reserved for future device-
-management verbs (list, onboard, reboot, ping, factory-reset, info)
-— see the device configuration specs for the namespace claim.`,
+management verbs (list, onboard, reboot, ping, factory-reset, info).`,
 }
 
 func init() {

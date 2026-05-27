@@ -8,8 +8,7 @@ import (
 )
 
 // DefaultListFields matches Traffic defaultColumnIds when --fields is omitted.
-// Canonical list: docs/traffic-columns.md (keep in sync with relaymesh-frontend
-// src/components/networks/traffic/columns.tsx defaultColumnIds).
+// Canonical list: docs/traffic-columns.md (keep in sync with the RelayMesh web UI).
 var DefaultListFields = []string{
 	"ingest_ts",
 	"source_node_id",

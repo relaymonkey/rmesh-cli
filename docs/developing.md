@@ -8,7 +8,7 @@ End-user install (macOS, Linux, Windows) — see [configure.md](configure.md#ins
 
 Semantic-release tags `rmesh-cli`; GoReleaser uploads release assets and updates the [relaymonkey/homebrew-tap](https://github.com/relaymonkey/homebrew-tap) Homebrew cask on each publish.
 
-Release workflows authenticate with the org **relaymonkey-bot** GitHub App (`RM_BOT_APP_ID` org variable + `RM_BOT_PRIVATE_KEY` org secret). The bot token is used for semantic-release, GitHub Releases and Homebrew tap commits.
+Release workflows authenticate with the org relaymonkey-bot GitHub App. The bot token is used for semantic-release, GitHub Releases, and Homebrew tap commits.
 
 Install scripts (`scripts/install.sh`, `scripts/install.ps1`) and Homebrew download release assets anonymously — **`rmesh-cli` must be public** for end-user install to work.
 
