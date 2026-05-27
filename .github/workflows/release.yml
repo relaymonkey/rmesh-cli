@@ -41,8 +41,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: Install dependencies
-        run: |
-          pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Release
         id: semantic
@@ -59,14 +58,17 @@ jobs:
             echo "new_release_published=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Checkout tag
-        if: steps.semantic.outputs.new_release_published == 'true'
-        run: |
-          git fetch --tags --force
-          git checkout ${{ steps.semantic.outputs.new_release_version }}
+  goreleaser:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.release.outputs.new_release_version }}
 
       - name: Run GoReleaser
-        if: steps.semantic.outputs.new_release_published == 'true'
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
