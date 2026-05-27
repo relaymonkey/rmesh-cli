@@ -84,8 +84,6 @@ homebrew_casks:
       Dynamic completion requires rmesh auth login.
     generate_completions_from_executable:
       executable: rmesh
-      args:
-        - completion
       shell_parameter_format: cobra
     hooks:
       post:
