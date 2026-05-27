@@ -1,0 +1,39 @@
+package cmd
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/spf13/cobra"
+
+	"github.com/relaymonkey/relaymesh-edge/internal/agent"
+)
+
+var observeCmd = &cobra.Command{
+	Use:   "observe",
+	Short: "Dry-run: local radio only, print JSONL to stdout (no cloud publish)",
+	Long:  "Validate transport, node-database synthesis, and envelope shape before enabling production publish.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		path, cfg, err := loadAgentConfig(cmd)
+		if err != nil {
+			return err
+		}
+
+		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+		defer cancel()
+
+		slog.Info("starting rmesh agent observe", "config", path, "agent_id", cfg.AgentID)
+		return shutdownErr(agent.Run(ctx, cfg, agent.Options{
+			Observe:      true,
+			ResetCadence: resetCadence,
+			ObserveOut:   os.Stdout,
+		}))
+	},
+}
+
+func init() {
+	observeCmd.SilenceUsage = true
+}

@@ -1,0 +1,12 @@
+/bin/
+/rmesh
+/dist/
+node_modules/
+*.exe
+*.test
+.DS_Store
+.idea/
+.vscode/
+.cursor/
+/device
+coverage.out

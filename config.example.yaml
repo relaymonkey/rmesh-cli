@@ -1,0 +1,34 @@
+agent_id: my-agent-001
+
+transport:
+  # url: serial:/dev/ttyUSB0
+  # url: http://192.168.1.10:4403
+  # url: ble://AA:BB:CC:DD:EE:FF
+  url: serial:/dev/cu.usbmodem1101
+
+mqtt:
+  broker_url: mqtt://mqtt.example.com:1883
+  username: your-mqtt-username
+  password: your-mqtt-password
+  topic_prefix: rm/n/your-network-id
+
+labels:
+  contributor: you@example.com
+  site: example-site
+
+synthesise:
+  nodedb_poll: 5m
+  nodeinfo:
+    enabled: true
+    interval: 6h
+    on_first_seen: true
+    jitter: 10m
+  position:
+    enabled: true
+    interval: 30m
+    on_first_seen: true
+    respect_position_precision: true
+  mapreport:
+    enabled: true
+    interval: 6h
+    on_first_seen: false

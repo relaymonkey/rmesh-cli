@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - run: go mod tidy
+      - run: go build -o /dev/null ./...
+      - run: go test ./...
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: bot-token
+        with:
+          app-id: ${{ vars.RM_BOT_APP_ID }}
+          private-key: ${{ secrets.RM_BOT_PRIVATE_KEY }}
+          owner: relaymonkey
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.bot-token.outputs.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ steps.bot-token.outputs.token }}
+        run: |
+          output=$(pnpm exec semantic-release)
+          echo "$output"
+          if echo "$output" | grep -q "Published release"; then
+            version=$(echo "$output" | grep "Created tag" | sed -E 's/.*Created tag (.*)/\1/')
+            echo "new_release_published=true" >> $GITHUB_OUTPUT
+            echo "new_release_version=$version" >> $GITHUB_OUTPUT
+          else
+            echo "new_release_published=false" >> $GITHUB_OUTPUT
+          fi
+
+  goreleaser:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: bot-token
+        with:
+          app-id: ${{ vars.RM_BOT_APP_ID }}
+          private-key: ${{ secrets.RM_BOT_PRIVATE_KEY }}
+          owner: relaymonkey
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.release.outputs.new_release_version }}
+          token: ${{ steps.bot-token.outputs.token }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ steps.bot-token.outputs.token }}
