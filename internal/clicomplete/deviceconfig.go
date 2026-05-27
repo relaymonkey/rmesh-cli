@@ -25,9 +25,14 @@ const (
 	// cloud.
 	ConfigEndpointSource ConfigEndpointKind = iota
 	// ConfigEndpointDestGet completes `get --to`: stdout or a file path.
+	// (Deprecated alias surface — D-216.)
 	ConfigEndpointDestGet
 	// ConfigEndpointDestSet completes `set --to`: device or cloud upload.
+	// (Deprecated alias surface — D-216.)
 	ConfigEndpointDestSet
+	// ConfigEndpointDestCopy completes `copy --to`: every destination
+	// (device, cloud, file, stdout) per D-216.
+	ConfigEndpointDestCopy
 )
 
 const deviceConfigCacheTTL = 30 * time.Second
@@ -106,6 +111,11 @@ func topLevelConfigEndpoints(kind ConfigEndpointKind, toComplete string) []Item 
 	case ConfigEndpointDestSet:
 		add("device", "apply to live device")
 		add("cloud:", "upload to cloud")
+	case ConfigEndpointDestCopy:
+		add("device", "apply to live device")
+		add("cloud:", "upload to cloud")
+		add("file:", "local JSON/YAML file")
+		add("-", "stdout")
 	}
 	return candidates
 }

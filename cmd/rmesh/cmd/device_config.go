@@ -19,22 +19,23 @@ import (
 )
 
 // deviceConfigCmd is the `rmesh device config` namespace root. Carries
-// the four canonical verbs (get / set / diff / list) per D-209. The
-// verb-specific files (device_config_get.go, …) attach their commands
-// to this root in their own init() blocks so each verb's flag block
-// stays adjacent to its handler.
+// the canonical verbs (show / copy / edit / list / promote) per D-209
+// + D-215 + D-216. The verb-specific files (device_config_show.go, …)
+// attach their commands to this root in their own init() blocks so
+// each verb's flag block stays adjacent to its handler.
 var deviceConfigCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Get / set / list / promote full-surface Meshtastic device configurations",
+	Short: "Show / copy / edit / list / promote full-surface Meshtastic device configurations",
 	Long: `Read and write the full Meshtastic device-configuration surface
 (every Config.* and ModuleConfig.* submessage + all channel rows)
 using a uniform --from / --to source grammar. Per D-208, D-209,
-D-212, D-213.
+D-212, D-213, D-215, D-216.
 
 Verbs:
 
-  rmesh device config get      --from <src>          [--to <PATH|->]
-  rmesh device config set      --from <src> --to <dst> [--dry-run]
+  rmesh device config show     --from <src>                       # read → stdout
+  rmesh device config copy     --from <src> --to <dst> [--dry-run]  # transfer A → B
+  rmesh device config edit     --from <src>                       # $EDITOR round-trip
   rmesh device config list     [--network <n>]
   rmesh device config promote  --from cloud:<n>/mine/<label> --to <network> ...
 
@@ -46,18 +47,18 @@ A source/destination token is one of:
   cloud:<network>/<label-or-id> saved cloud config (requires session)
   -                            stdout (only valid as --to)
 
-To preview what an apply would change, run ` + "`set --dry-run`" + ` —
-it always shows the diff in the natural "device current → intended"
-direction, regardless of how you wrote the flags. There is no
-separate ` + "`diff`" + ` verb because its symmetric --from / --to created
-ambiguity about which side is the source of truth.
+Mental model (D-216): ` + "`show`" + ` reads, ` + "`copy`" + ` transfers. ` + "`copy`" + ` is
+destination-agnostic — file, cloud, and device are all valid ` + "`--to`" + `
+targets; the side effects (radio reboot, cloud row creation, file
+write) live in the per-destination handler. Use ` + "`copy --dry-run`" + ` to
+preview a device apply.
 
-Mappings from older intuitive verbs:
-  export → get  --from device --to ./x.yaml
-  import → set  --from file:./x.yaml --to device
-  save   → set  --from device --to cloud --network n --label x
-  push   → set  --from cloud:n/x --to device
-  show   → get  --from <anything>`,
+There is no separate ` + "`diff`" + ` verb (D-214) — ` + "`copy --dry-run`" + ` shows
+the diff in the natural "device current → intended" direction.
+
+Deprecated aliases (kept for backwards compatibility; D-216):
+  get → show / copy --to <file>
+  set → copy`,
 }
 
 // commonFlags holds the union of flags every verb may want. Individual

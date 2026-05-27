@@ -136,6 +136,35 @@ func (c *Client) CreateMyDeviceConfig(ctx context.Context, req CreatePersonalReq
 	return out, nil
 }
 
+// UpdateDeviceConfigRequest mirrors the backend's
+// `DeviceConfigUpdateRequest`. All fields are optional; sending
+// `Payload` re-seals the row and re-derives the denormalised hints.
+// `Visibility` and `AudienceTags` are template-only (rejected for
+// personal rows). Pointer types let callers distinguish "omit"
+// from "set to zero value".
+type UpdateDeviceConfigRequest struct {
+	Label           *string                         `json:"label,omitempty"`
+	Description     *string                         `json:"description,omitempty"`
+	Payload         *deviceconfigs.CanonicalPayload `json:"payload,omitempty"`
+	FirmwareVersion *string                         `json:"firmware_version,omitempty"`
+	Visibility      *string                         `json:"visibility,omitempty"`
+	AudienceTags    *[]string                       `json:"audience_tags,omitempty"`
+}
+
+// UpdateDeviceConfig PATCHes a personal or template row. The server
+// gates authorisation by owner_kind + caller role; the CLI just
+// passes the request through. Used by `rmesh device config edit`
+// when the source/destination is a cloud reference.
+func (c *Client) UpdateDeviceConfig(ctx context.Context, networkID, configID string, req UpdateDeviceConfigRequest) (DeviceConfigDetail, error) {
+	path := fmt.Sprintf("/api/v1/networks/%s/device-configs/%s",
+		url.PathEscape(networkID), url.PathEscape(configID))
+	var out DeviceConfigDetail
+	if err := c.PatchJSON(ctx, path, req, &out); err != nil {
+		return DeviceConfigDetail{}, err
+	}
+	return out, nil
+}
+
 // CreateNetworkTemplate posts a new **network template** to a
 // network. Requires the caller to hold an elevated network role
 // server-side; the CLI doesn't gate up-front. Used internally by

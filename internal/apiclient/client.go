@@ -62,6 +62,12 @@ func (c *Client) PostJSON(ctx context.Context, path string, body, dest any) erro
 	return c.doJSON(ctx, http.MethodPost, c.baseURL+path, body, dest)
 }
 
+// PatchJSON sends a PATCH with a JSON body and unmarshals the
+// response into `dest`. Empty body is allowed (pass nil).
+func (c *Client) PatchJSON(ctx context.Context, path string, body, dest any) error {
+	return c.doJSON(ctx, http.MethodPatch, c.baseURL+path, body, dest)
+}
+
 // doJSON is the shared HTTP plumbing for GET/POST/PATCH/etc.
 //
 // All RelayMesh endpoints today are JSON-in / JSON-out; we lean on

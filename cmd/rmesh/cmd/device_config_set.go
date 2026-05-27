@@ -25,8 +25,10 @@ var setFlags commonFlags
 var errRegionChangeRefused = errors.New("region change refused; pass --allow-region-change to proceed (D-210)")
 
 var deviceConfigSetCmd = &cobra.Command{
-	Use:   "set",
-	Short: "Apply a device configuration to a device, or upload it to the cloud",
+	Use:        "set",
+	Deprecated: "use `rmesh device config copy` instead (D-216). `copy --to <dst>` accepts every destination (device, cloud, file, stdout) without the file/stdout rejection that `set` carries.",
+	Hidden:     true,
+	Short:      "Apply a device configuration to a device, or upload it to the cloud",
 	Long: `Write a configuration to a destination. Source / destination combinations:
 
   --from device --to cloud         capture current state and save as a named cloud config
@@ -91,20 +93,52 @@ from the device's currently reported region, the apply refuses unless
 		switch dst.Kind {
 		case deviceconfigs.SourceDevice:
 			return applyToDevice(ctx, cmd, dst, payload)
-		case deviceconfigs.SourceCloud:
-			return uploadToCloud(ctx, cmd, dst, payload, fwHint, client)
-		}
+	case deviceconfigs.SourceCloud:
+		return uploadToCloud(ctx, cmd, dst, payload, fwHint, client, cloudUploadOptions{
+			Label:       setFlags.label,
+			Description: setFlags.description,
+		})
+	}
 		return fmt.Errorf("unsupported --to %s", dst)
 	},
 }
 
-// applyToDevice runs the admin-edit-session apply and surfaces the
-// region-change pre-check (D-210).
+// applyOptions captures the subset of flag state that
+// applyPayloadToDevice consumes. Both `set` and `edit` share the
+// same apply path; this struct lets each verb own its own flag
+// block without coupling to the other's globals.
+type applyOptions struct {
+	AllowRegionChange bool
+	DryRun            bool
+	RebootWait        time.Duration
+	Verbose           bool
+}
+
+// applyToDevice is `set`'s wrapper around applyPayloadToDevice;
+// kept for source-locality with the rest of the `set` handler.
 func applyToDevice(
 	ctx context.Context,
 	cmd *cobra.Command,
 	dst deviceconfigs.Source,
 	payload deviceconfigs.CanonicalPayload,
+) error {
+	return applyPayloadToDevice(ctx, cmd, dst, payload, applyOptions{
+		AllowRegionChange: setFlags.allowRegionChange,
+		DryRun:            setFlags.dryRun,
+		RebootWait:        setFlags.rebootWait,
+		Verbose:           setFlags.verbose,
+	})
+}
+
+// applyPayloadToDevice runs the admin-edit-session apply and
+// surfaces the region-change pre-check (D-210). Shared between
+// `set --to device` and `edit --from device`.
+func applyPayloadToDevice(
+	ctx context.Context,
+	cmd *cobra.Command,
+	dst deviceconfigs.Source,
+	payload deviceconfigs.CanonicalPayload,
+	opts applyOptions,
 ) error {
 	url, err := resolveDeviceURL(dst.URL)
 	if err != nil {
@@ -127,7 +161,7 @@ func applyToDevice(
 	currentHints := deviceconfigs.HintsFromPayload(currentPayload)
 	intendedHints := deviceconfigs.HintsFromPayload(payload)
 	if intendedHints.Region != "" && intendedHints.Region != currentHints.Region && currentHints.Region != "" {
-		if !setFlags.allowRegionChange {
+		if !opts.AllowRegionChange {
 			fmt.Fprintf(cmd.ErrOrStderr(),
 				"error: region change %s → %s would alter regulatory band; pass --allow-region-change to proceed (D-210)\n",
 				currentHints.Region, intendedHints.Region)
@@ -146,7 +180,7 @@ func applyToDevice(
 	diff := deviceconfigs.Diff(currentPayload, payload)
 	tty := term.IsTerminal(int(os.Stdout.Fd()))
 
-	if setFlags.dryRun {
+	if opts.DryRun {
 		fmt.Fprintln(cmd.OutOrStdout(), "dry-run — pending changes:")
 		deviceconfigs.RenderDiff(cmd.OutOrStdout(), diff, deviceconfigs.DiffRenderOptions{
 			FromLabel: "device (current)",
@@ -169,7 +203,7 @@ func applyToDevice(
 	// reboot wait, re-read) is visible. Spinner only on TTY — CI
 	// logs stay clean.
 	progressW := cmd.ErrOrStderr()
-	progress := newApplyProgress(progressW, tty, setFlags.verbose)
+	progress := newApplyProgress(progressW, tty, opts.Verbose)
 	defer progress.Close()
 
 	// Print the exact field-level changes about to go on the wire,
@@ -185,7 +219,7 @@ func applyToDevice(
 	fmt.Fprintln(progressW)
 
 	res, err := rmdevice.Apply(ctx, transport, filtered, rmdevice.ApplyOptions{
-		RebootWait:    setFlags.rebootWait,
+		RebootWait:    opts.RebootWait,
 		PreApplyState: &currentPayload,
 		OnProgress:    progress.handle,
 	})
@@ -228,6 +262,14 @@ func applyToDevice(
 	return nil
 }
 
+// cloudUploadOptions decouples uploadToCloud from any single verb's
+// flag struct; both `set` and `copy` (D-216) populate this and call
+// the shared helper.
+type cloudUploadOptions struct {
+	Label       string
+	Description string
+}
+
 func uploadToCloud(
 	ctx context.Context,
 	cmd *cobra.Command,
@@ -235,27 +277,28 @@ func uploadToCloud(
 	payload deviceconfigs.CanonicalPayload,
 	fwHint string,
 	client apiclient.CloudClient,
+	opts cloudUploadOptions,
 ) error {
-	// `set --to cloud` is always a personal save (D-213). To publish
-	// a personal row as a network template, the operator runs the
-	// dedicated `rmesh device config promote` verb. Any explicit
-	// `cloud:<n>/template/<label>` destination is rejected here so
-	// the operator gets a clear error instead of an opaque 403.
+	// `copy --to cloud` (and the deprecated `set --to cloud`) is always
+	// a personal save (D-213). To publish a personal row as a network
+	// template, the operator runs the dedicated `rmesh device config
+	// promote` verb. Any explicit `cloud:<n>/template/<label>`
+	// destination is rejected here so the operator gets a clear error
+	// instead of an opaque 403.
 	if dst.Owner == deviceconfigs.CloudOwnerTemplate {
 		return errors.New(
-			"`set --to cloud:<n>/template/<label>` is not supported; " +
-				"`set --to cloud` always writes a personal row. " +
+			"`--to cloud:<n>/template/<label>` is not supported; " +
+				"writing to cloud always creates a personal row. " +
 				"Use `rmesh device config promote` to publish a personal config as a network template (D-213).",
 		)
 	}
-	if setFlags.label == "" {
+	label := opts.Label
+	if label == "" && dst.Label != "" {
 		// Allow the destination label to come from the URI tail when --label is unset
 		// (e.g. `--to cloud:home/eu-868` => label "eu-868").
-		if dst.Label != "" {
-			setFlags.label = dst.Label
-		}
+		label = dst.Label
 	}
-	if setFlags.label == "" {
+	if label == "" {
 		return errors.New("--label is required when --to cloud (or set the destination as cloud:<network>/<label>)")
 	}
 	netID, err := resolveCloudNetworkID(ctx, client, dst.Network)
@@ -274,8 +317,8 @@ func uploadToCloud(
 	}
 	out, err := c.CreateMyDeviceConfig(ctx, apiclient.CreatePersonalRequest{
 		NetworkID:       netID,
-		Label:           setFlags.label,
-		Description:     setFlags.description,
+		Label:           label,
+		Description:     opts.Description,
 		Payload:         payload,
 		FirmwareVersion: fwHint,
 	})

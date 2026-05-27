@@ -13,8 +13,10 @@ import (
 var getFlags commonFlags
 
 var deviceConfigGetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Read a device configuration from any source and render or save it",
+	Use:        "get",
+	Deprecated: "use `rmesh device config show` to print, or `rmesh device config copy --to <path>` to save to a file (D-216).",
+	Hidden:     true,
+	Short:      "Read a device configuration from any source and render or save it",
 	Long: `Read a device configuration from a live device, a local file, or
 a saved cloud config, and render it to stdout or save it to a file.
 
