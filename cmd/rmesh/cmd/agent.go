@@ -28,7 +28,12 @@ func init() {
 	bindConfigSections(doctorCmd,
 		sectionIdentity, sectionTransport, sectionMQTT, sectionSynthesise, sectionLabels)
 
-	runCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "log each MQTT publish (topic, source, portnum)")
+	// `-v / --verbose` is scoped to `agent *` so it doesn't collide
+	// with the per-section `-v` flags on `device-config set/edit/copy`
+	// (which print the exact SetConfig payload). Single flag, max
+	// output: debug-level slog (transport, BLE, internal state) plus
+	// per-publish MQTT lines on `agent run`.
+	agentCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging (debug level: MQTT publishes, transport, BLE, internal state)")
 	runCmd.Flags().BoolVar(&resetCadence, "reset-cadence", false, "force synthetic re-emission on next tick")
 	observeCmd.Flags().BoolVar(&resetCadence, "reset-cadence", false, "force synthetic re-emission on next tick")
 }

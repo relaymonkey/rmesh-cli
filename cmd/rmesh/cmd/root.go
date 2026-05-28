@@ -20,7 +20,6 @@ var (
 	configPath   string
 	resetCadence bool
 	verbose      bool
-	debug        bool
 )
 
 // Execute runs the rmesh CLI.
@@ -83,7 +82,6 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", cliconfig.AgentConfigPath(), "path to config.yaml")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debug logging (transport, BLE, internal state)")
 	// Suppress cobra's default `Error: <chain>` line and the auto
 	// usage dump on RunE failures. `renderRootError` is the single
 	// stderr sink for command-return errors so every failure goes
@@ -91,12 +89,17 @@ func init() {
 	// need their own `SilenceUsage = true`.
 	rootCmd.SilenceErrors = true
 	rootCmd.SilenceUsage = true
-	cobra.OnInitialize(applyDebugLogging)
+	cobra.OnInitialize(applyVerboseLogging)
 }
 
-func applyDebugLogging() {
+// applyVerboseLogging installs the slog default handler at the level
+// requested by `-v / --verbose`. Verbose currently means "max output"
+// (debug level: transport, BLE, MQTT publishes, internal state). We
+// intentionally do not expose stackable `-vv / -vvv` yet — one flag,
+// one decision. If a finer cut is ever needed, add it via a new D-NN.
+func applyVerboseLogging() {
 	level := slog.LevelInfo
-	if debug {
+	if verbose {
 		level = slog.LevelDebug
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
