@@ -142,18 +142,35 @@ func readPayloadFromSource(
 
 	case deviceconfigs.SourceCloud:
 		if client == nil {
-			return deviceconfigs.CanonicalPayload{}, "", errors.New("cloud source requires --network resolution; run `rmesh auth login` first")
+			return deviceconfigs.CanonicalPayload{}, "", errors.New("cloud source requires a session; run `rmesh auth login` first")
+		}
+		c := concrete(client)
+		if c == nil {
+			return deviceconfigs.CanonicalPayload{}, "", errors.New("cloud source requires the concrete *apiclient.Client")
+		}
+		// Personal source: `cloud:mine/<label>` carries no network
+		// per D-219. Resolve via /me and read via /me.
+		if src.Owner == deviceconfigs.CloudOwnerMine {
+			cfgID, err := c.ResolveDeviceConfigID(ctx, "", src.Label, apiclient.OwnerMine)
+			if err != nil {
+				return deviceconfigs.CanonicalPayload{}, "", err
+			}
+			detail, err := c.GetMyDeviceConfig(ctx, cfgID)
+			if err != nil {
+				return deviceconfigs.CanonicalPayload{}, "", err
+			}
+			return detail.Payload, detail.FirmwareVersion, nil
 		}
 		netID, err := resolveCloudNetworkID(ctx, client, src.Network)
 		if err != nil {
 			return deviceconfigs.CanonicalPayload{}, "", err
 		}
 		hint := apiclient.OwnerHint(src.Owner)
-		cfgID, err := concrete(client).ResolveDeviceConfigID(ctx, netID, src.Label, hint)
+		cfgID, err := c.ResolveDeviceConfigID(ctx, netID, src.Label, hint)
 		if err != nil {
 			return deviceconfigs.CanonicalPayload{}, "", err
 		}
-		detail, err := concrete(client).GetDeviceConfig(ctx, netID, cfgID, revealForCloud)
+		detail, err := c.GetDeviceConfig(ctx, netID, cfgID, revealForCloud)
 		if err != nil {
 			return deviceconfigs.CanonicalPayload{}, "", err
 		}

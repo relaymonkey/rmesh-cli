@@ -88,6 +88,7 @@ var deviceConfigEditCmd = &cobra.Command{
 			client      apiclient.CloudClient
 			netID       string
 			cfgID       string
+			isPersonal  bool
 			needsClient = src.Kind == deviceconfigs.SourceCloud
 		)
 		if needsClient {
@@ -96,13 +97,27 @@ var deviceConfigEditCmd = &cobra.Command{
 				return err
 			}
 			client = c
-			netID, err = resolveCloudNetworkID(ctx, client, src.Network)
-			if err != nil {
-				return err
+			cc := concrete(client)
+			if cc == nil {
+				return errors.New("cloud edit requires the concrete *apiclient.Client")
 			}
-			cfgID, err = concrete(client).ResolveDeviceConfigID(ctx, netID, src.Label, apiclient.OwnerHint(src.Owner))
-			if err != nil {
-				return err
+			if src.Owner == deviceconfigs.CloudOwnerMine {
+				// Personal (D-219): no network resolution; resolve
+				// label against the caller's library.
+				isPersonal = true
+				cfgID, err = cc.ResolveDeviceConfigID(ctx, "", src.Label, apiclient.OwnerMine)
+				if err != nil {
+					return err
+				}
+			} else {
+				netID, err = resolveCloudNetworkID(ctx, client, src.Network)
+				if err != nil {
+					return err
+				}
+				cfgID, err = cc.ResolveDeviceConfigID(ctx, netID, src.Label, apiclient.OwnerHint(src.Owner))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -184,9 +199,15 @@ var deviceConfigEditCmd = &cobra.Command{
 			if c == nil {
 				return errors.New("cloud edit requires the concrete *apiclient.Client")
 			}
-			out, err := c.UpdateDeviceConfig(ctx, netID, cfgID, apiclient.UpdateDeviceConfigRequest{
-				Payload: &edited,
-			})
+			var (
+				out apiclient.DeviceConfigDetail
+			)
+			req := apiclient.UpdateDeviceConfigRequest{Payload: &edited}
+			if isPersonal {
+				out, err = c.UpdateMyDeviceConfig(ctx, cfgID, req)
+			} else {
+				out, err = c.UpdateDeviceConfig(ctx, netID, cfgID, req)
+			}
 			if err != nil {
 				return fmt.Errorf("update %s: %w", src, err)
 			}

@@ -27,16 +27,22 @@ const (
 	SourceStdout
 )
 
-// CloudOwner discriminates a cloud source's owner segment in the
-// `cloud:<n>/{mine|template}/<label>` URI grammar.
+// CloudOwner discriminates a cloud source's owner segment. Per
+// D-219 personal rows are user-scoped, so the grammar is:
+//
+//	cloud:mine/<label>             — owner=mine, no network
+//	cloud:<n>/template/<label>     — owner=template, on network n
+//	cloud:<n>/<label>              — owner=template (bare form), on network n
 type CloudOwner string
 
 const (
-	// CloudOwnerEither is the bare-form `cloud:<n>/<label>`. The
-	// resolver tries the caller's personal library first and falls
-	// back to network templates.
+	// CloudOwnerEither is the bare-form `cloud:<n>/<label>`.
+	// Per D-219 the resolver treats it as a template lookup (the
+	// pre-D-219 mine-first-then-template fallback is gone — personal
+	// is no longer per-network).
 	CloudOwnerEither CloudOwner = ""
-	// CloudOwnerMine is the explicit `cloud:<n>/mine/<label>`.
+	// CloudOwnerMine is the explicit `cloud:mine/<label>`. Carries
+	// no Network — personal rows are user-scoped per D-219.
 	CloudOwnerMine CloudOwner = "mine"
 	// CloudOwnerTemplate is the explicit `cloud:<n>/template/<label>`.
 	CloudOwnerTemplate CloudOwner = "template"
@@ -44,10 +50,12 @@ const (
 
 // Source is a parsed source/destination reference.
 type Source struct {
-	Kind    SourceKind
-	URL     string     // transport URL for SourceDevice
-	Path    string     // file path for SourceFile, "-" for SourceStdout
-	Network string     // network slug / id / short_id for SourceCloud
+	Kind SourceKind
+	URL  string // transport URL for SourceDevice
+	Path string // file path for SourceFile, "-" for SourceStdout
+	// Network is the network slug / id / short_id for cloud refs
+	// that target a network (templates). Empty for `cloud:mine/...`.
+	Network string
 	Owner   CloudOwner // mine / template / either, for SourceCloud
 	Label   string     // config label or id for SourceCloud
 	Raw     string     // verbatim user input, kept for error messages
@@ -82,15 +90,31 @@ func ParseSource(raw string) (Source, error) {
 	if strings.HasPrefix(s, "file:") {
 		return Source{Kind: SourceFile, Path: s[len("file:"):], Raw: raw}, nil
 	}
-	// cloud:<network>/<label>
-	// cloud:<network>/mine/<label>
+	// cloud:mine/<label>             (D-219, no network)
+	// cloud:<network>/<label>        (bare → template-only on <network>)
 	// cloud:<network>/template/<label>
+	// cloud:<network>/mine/<label>   (legacy, accepted but normalised
+	//                                  to cloud:mine/<label>; the
+	//                                  network segment is dropped)
 	if strings.HasPrefix(s, "cloud:") {
 		body := s[len("cloud:"):]
 		if body == "" {
-			return Source{}, errors.New("cloud source requires <network>/<label> (e.g. cloud:home/eu-868)")
+			return Source{}, errors.New("cloud source requires mine/<label> or <network>/<label> (e.g. cloud:mine/eu-868 or cloud:home/eu-868)")
 		}
-		// Split on the first `/`: <network>/<rest>
+		// `cloud:mine/<label>` — user-scoped personal library.
+		// No network segment; if one follows, it's an error.
+		if strings.HasPrefix(body, "mine/") {
+			label := strings.TrimSpace(strings.TrimPrefix(body, "mine/"))
+			if label == "" {
+				return Source{}, fmt.Errorf("cloud source %q must end with a label (e.g. cloud:mine/eu-868)", raw)
+			}
+			return Source{
+				Kind:  SourceCloud,
+				Owner: CloudOwnerMine,
+				Label: label,
+				Raw:   raw,
+			}, nil
+		}
 		sep := strings.Index(body, "/")
 		if sep < 0 {
 			return Source{}, fmt.Errorf("cloud source %q missing /<label> (e.g. cloud:home/eu-868)", raw)
@@ -98,21 +122,24 @@ func ParseSource(raw string) (Source, error) {
 		net := strings.TrimSpace(body[:sep])
 		rest := strings.TrimSpace(body[sep+1:])
 		if net == "" || rest == "" {
-			return Source{}, fmt.Errorf("cloud source %q must be cloud:<network>/<label>", raw)
+			return Source{}, fmt.Errorf("cloud source %q must be cloud:mine/<label> or cloud:<network>/<label>", raw)
 		}
 		owner := CloudOwnerEither
-		// Optional owner segment: `mine/...` or `template/...`.
+		// Optional owner segment: `mine/...` (legacy) or `template/...`.
 		if sep2 := strings.Index(rest, "/"); sep2 > 0 {
 			head := strings.TrimSpace(rest[:sep2])
 			tail := strings.TrimSpace(rest[sep2+1:])
 			switch head {
 			case "mine":
-				owner = CloudOwnerMine
-				rest = tail
+				// Legacy `cloud:<n>/mine/<label>` — drop the network
+				// segment per D-219 and normalise to mine/<label>.
+				return Source{
+					Kind:  SourceCloud,
+					Owner: CloudOwnerMine,
+					Label: tail,
+					Raw:   raw,
+				}, nil
 			case "template", "templates", "shared":
-				// `template` is canonical; `templates` and `shared`
-				// are forgiving aliases (operators tend to remember
-				// one or the other and we don't want to scold).
 				owner = CloudOwnerTemplate
 				rest = tail
 			}
@@ -168,7 +195,7 @@ func (s Source) String() string {
 	case SourceCloud:
 		switch s.Owner {
 		case CloudOwnerMine:
-			return "cloud:" + s.Network + "/mine/" + s.Label
+			return "cloud:mine/" + s.Label
 		case CloudOwnerTemplate:
 			return "cloud:" + s.Network + "/template/" + s.Label
 		default:

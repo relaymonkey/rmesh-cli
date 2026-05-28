@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/relaymonkey/relaymesh-edge/internal/clidefault"
 	"github.com/relaymonkey/relaymesh-edge/internal/cliconfig"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 )
 
 var (
@@ -48,7 +51,28 @@ func Execute() error {
 		os.Exit(130)
 	}()
 
-	return rootCmd.ExecuteContext(ctx)
+	err := rootCmd.ExecuteContext(ctx)
+	if err != nil {
+		renderRootError(os.Stderr, err)
+	}
+	return err
+}
+
+// renderRootError is the single sink for command-return errors. It
+// replaces cobra's default `Error: <chain>` line with a cliui ✗
+// headline (per D-217) and, for well-known sentinels, attaches an
+// actionable hint. Keeping this centralized means individual commands
+// don't have to remember to print errors through cliui themselves —
+// `return err` from any RunE is enough.
+func renderRootError(w *os.File, err error) {
+	ui := cliui.New(w)
+	switch {
+	case errors.Is(err, clidefault.ErrNotSet):
+		_ = ui.Fail("No default network set")
+		_ = ui.Hint("run: rmesh network use <id> (see `rmesh network list`)")
+	default:
+		_ = ui.Fail(err.Error())
+	}
 }
 
 var rootCmd = &cobra.Command{
@@ -60,6 +84,13 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configPath, "config", cliconfig.AgentConfigPath(), "path to config.yaml")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debug logging (transport, BLE, internal state)")
+	// Suppress cobra's default `Error: <chain>` line and the auto
+	// usage dump on RunE failures. `renderRootError` is the single
+	// stderr sink for command-return errors so every failure goes
+	// through the cliui framework (D-217). Subcommands no longer
+	// need their own `SilenceUsage = true`.
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
 	cobra.OnInitialize(applyDebugLogging)
 }
 

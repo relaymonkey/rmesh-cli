@@ -279,12 +279,9 @@ func uploadToCloud(
 	client apiclient.CloudClient,
 	opts cloudUploadOptions,
 ) error {
-	// `copy --to cloud` (and the deprecated `set --to cloud`) is always
-	// a personal save. To publish a personal row as a network
-	// template, the operator runs the dedicated `rmesh device config
-	// promote` verb. Any explicit `cloud:<n>/template/<label>`
-	// destination is rejected here so the operator gets a clear error
-	// instead of an opaque 403.
+	// Per D-219 writing to cloud always creates a personal row in
+	// the caller's user-scoped library. Templates can only be
+	// authored via `promote`; any per-network destination is rejected.
 	if dst.Owner == deviceconfigs.CloudOwnerTemplate {
 		return errors.New(
 			"`--to cloud:<n>/template/<label>` is not supported; " +
@@ -292,22 +289,20 @@ func uploadToCloud(
 				"Use `rmesh device config promote` to publish a personal config as a network template.",
 		)
 	}
+	if dst.Owner == deviceconfigs.CloudOwnerEither && dst.Network != "" {
+		return errors.New(
+			"`--to cloud:<n>/<label>` is not supported (D-219); use " +
+				"`--to cloud:mine/<label>` for a personal save, or " +
+				"`rmesh device config promote` to publish a template.",
+		)
+	}
 	label := opts.Label
 	if label == "" && dst.Label != "" {
-		// Allow the destination label to come from the URI tail when --label is unset
-		// (e.g. `--to cloud:home/eu-868` => label "eu-868").
 		label = dst.Label
 	}
 	if label == "" {
-		return errors.New("--label is required when --to cloud (or set the destination as cloud:<network>/<label>)")
+		return errors.New("--label is required when --to cloud (or set the destination as cloud:mine/<label>)")
 	}
-	netID, err := resolveCloudNetworkID(ctx, client, dst.Network)
-	if err != nil {
-		return err
-	}
-	// Echo the payload as JSON to verify shape early — failures here
-	// (e.g. a stray non-JSON-serialisable type from a future field)
-	// surface as a clear local error instead of an opaque 400.
 	if _, err := json.Marshal(payload); err != nil {
 		return fmt.Errorf("payload is not JSON-serialisable: %w", err)
 	}
@@ -316,7 +311,6 @@ func uploadToCloud(
 		return errors.New("cloud destination requires the concrete *apiclient.Client (alternative implementations not supported)")
 	}
 	out, err := c.CreateMyDeviceConfig(ctx, apiclient.CreatePersonalRequest{
-		NetworkID:       netID,
 		Label:           label,
 		Description:     opts.Description,
 		Payload:         payload,
@@ -326,10 +320,9 @@ func uploadToCloud(
 		return err
 	}
 	path := deviceconfigs.Source{
-		Kind:    deviceconfigs.SourceCloud,
-		Network: dst.Network,
-		Owner:   deviceconfigs.CloudOwnerMine,
-		Label:   out.Label,
+		Kind:  deviceconfigs.SourceCloud,
+		Owner: deviceconfigs.CloudOwnerMine,
+		Label: out.Label,
 	}.String()
 	return cliui.New(cmd.OutOrStdout()).SavedCloudConfig(out.Label, path, out.ID)
 }

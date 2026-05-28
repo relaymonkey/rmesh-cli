@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -11,7 +12,40 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
+	"github.com/relaymonkey/relaymesh-edge/internal/clidefault"
+	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 )
+
+// tplSkip carries the structured reason templates couldn't be loaded
+// so the renderer can drive the cliui framework (Warn + Note + Hint)
+// instead of dumping a raw wrapped-error string.
+type tplSkip struct {
+	headline string // short Warn headline
+	cause    string // optional Note line with the underlying detail
+	hint     string // optional Hint line with the next step
+}
+
+func skipFromResolve(err error) tplSkip {
+	if errors.Is(err, clidefault.ErrNotSet) {
+		return tplSkip{
+			headline: "templates skipped: no default network set",
+			hint:     "pass --network <id> or run: rmesh network use <id>",
+		}
+	}
+	return tplSkip{
+		headline: "templates skipped: could not resolve network",
+		cause:    err.Error(),
+		hint:     "pass --network <id> or run: rmesh network use <id>",
+	}
+}
+
+func skipFromFetch(err error) tplSkip {
+	return tplSkip{
+		headline: "templates skipped: could not fetch network templates",
+		cause:    err.Error(),
+		hint:     "verify the network with: rmesh network list",
+	}
+}
 
 var listFlags struct {
 	network   string
@@ -41,23 +75,36 @@ grouped in the table output.
 		if err != nil {
 			return err
 		}
-		// Empty --network falls back to the saved default
-		// (`rmesh network use`).
-		netID, err := resolveNetworkID(cmd, client, listFlags.network)
-		if err != nil {
-			return err
-		}
 		c := concrete(client)
 
 		showMine := listFlags.mine || (!listFlags.mine && !listFlags.templates)
 		showTpl := listFlags.templates || (!listFlags.mine && !listFlags.templates)
+		// `--templates` (explicit) is a hard requirement: surface
+		// network resolution / fetch failures as errors. The
+		// default (mine + templates) treats template failures as a
+		// warning so the personal library still renders when the
+		// saved default network is missing or unset.
+		strictTpl := listFlags.templates && !listFlags.mine
 
 		var (
-			mine apiclient.DeviceConfigList
-			tpl  apiclient.DeviceConfigList
+			mine  apiclient.DeviceConfigList
+			tpl   apiclient.DeviceConfigList
+			skip  *tplSkip
+			netID string
 		)
+		if showTpl {
+			netID, err = resolveNetworkID(cmd, client, listFlags.network)
+			if err != nil {
+				if strictTpl {
+					return err
+				}
+				s := skipFromResolve(err)
+				skip = &s
+				showTpl = false
+			}
+		}
 		if showMine {
-			mine, err = c.ListMyDeviceConfigs(ctx, netID)
+			mine, err = c.ListMyDeviceConfigs(ctx)
 			if err != nil {
 				return err
 			}
@@ -65,7 +112,22 @@ grouped in the table output.
 		if showTpl {
 			tpl, err = c.ListDeviceConfigs(ctx, netID)
 			if err != nil {
-				return err
+				if strictTpl {
+					return err
+				}
+				s := skipFromFetch(err)
+				skip = &s
+				tpl = apiclient.DeviceConfigList{}
+			}
+		}
+		if skip != nil {
+			u := cliui.New(cmd.ErrOrStderr())
+			_ = u.Warn(skip.headline)
+			if skip.cause != "" {
+				_ = u.Note(skip.cause)
+			}
+			if skip.hint != "" {
+				_ = u.Hint(skip.hint)
 			}
 		}
 

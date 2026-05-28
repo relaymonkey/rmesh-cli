@@ -7,9 +7,10 @@ import (
 	"net/url"
 )
 
-// DeleteDeviceConfig removes a personal or network-template row.
-// Returns nil on 204. Authorisation is enforced server-side (personal:
-// owner-only; templates: elevated network role).
+// DeleteDeviceConfig removes a network template row. Personal rows
+// have moved to `/me/device-configs/{cfg_id}` per D-219; the CLI
+// dispatches on Source.Owner before calling either this method or
+// `DeleteMyDeviceConfig`.
 func (c *Client) DeleteDeviceConfig(ctx context.Context, networkID, configID string) error {
 	path := fmt.Sprintf("/api/v1/networks/%s/device-configs/%s",
 		url.PathEscape(networkID), url.PathEscape(configID))

@@ -121,14 +121,72 @@ func topLevelConfigEndpoints(kind ConfigEndpointKind, toComplete string) []Item 
 func completeCloudEndpoint(ctx context.Context, toComplete string) ([]Item, error) {
 	rest := strings.TrimPrefix(toComplete, "cloud:")
 	if rest == "" {
-		return prefixCloudNetworks(ctx, toComplete, "")
+		// Top-level: offer `mine/` (personal library) plus every
+		// network the caller belongs to. Per D-219 personal is a
+		// peer of the networks at this level.
+		items := []Item{{Value: "cloud:mine/", Description: "your personal library"}}
+		nets, err := prefixCloudNetworks(ctx, toComplete, "")
+		return append(items, nets...), err
+	}
+	// `cloud:mine/...` — complete personal labels.
+	if strings.HasPrefix(rest, "mine/") {
+		labelPrefix := strings.TrimPrefix(rest, "mine/")
+		return completePersonalLabels(ctx, labelPrefix, "cloud:mine/")
+	}
+	if rest == "mine" {
+		return []Item{{Value: "cloud:mine/", Description: "your personal library"}}, nil
 	}
 	if slash := strings.Index(rest, "/"); slash >= 0 {
 		netRef := rest[:slash]
 		labelPrefix := rest[slash+1:]
 		return completeCloudLabels(ctx, netRef, labelPrefix, toComplete[:len("cloud:")+slash+1])
 	}
-	return prefixCloudNetworks(ctx, toComplete, rest)
+	// Partial network ref (no `/` yet). Match against networks and
+	// also offer `mine/` when the prefix matches.
+	out, err := prefixCloudNetworks(ctx, toComplete, rest)
+	if err != nil {
+		return out, err
+	}
+	if strings.HasPrefix("mine", strings.ToLower(rest)) {
+		out = append([]Item{{Value: "cloud:mine/", Description: "your personal library"}}, out...)
+	}
+	return out, nil
+}
+
+// completePersonalLabels completes labels in the caller's
+// cross-network personal library (D-219). No network ref.
+func completePersonalLabels(_ context.Context, labelPrefix, valuePrefix string) ([]Item, error) {
+	saved, err := session.Load()
+	if err != nil {
+		return nil, err
+	}
+	client := apiclient.New(saved)
+	bgCtx := context.Background()
+	list, err := client.ListMyDeviceConfigs(bgCtx)
+	if err != nil {
+		return nil, err
+	}
+	lp := strings.ToLower(labelPrefix)
+	out := make([]Item, 0, len(list.Items))
+	for _, cfg := range list.Items {
+		if lp != "" && !strings.HasPrefix(strings.ToLower(cfg.Label), lp) &&
+			!strings.HasPrefix(strings.ToLower(cfg.ID), lp) {
+			continue
+		}
+		desc := cfg.Region
+		if cfg.ModemPreset != "" {
+			if desc == "" {
+				desc = cfg.ModemPreset
+			} else {
+				desc = desc + " · " + cfg.ModemPreset
+			}
+		}
+		if desc == "" {
+			desc = "personal"
+		}
+		out = append(out, Item{Value: valuePrefix + cfg.Label, Description: desc})
+	}
+	return out, nil
 }
 
 func prefixCloudNetworks(ctx context.Context, toComplete, netPrefix string) ([]Item, error) {
@@ -200,55 +258,36 @@ func cachedDeviceConfigLabels(client *apiclient.Client, networkID, labelPrefix, 
 	}
 	deviceConfigCacheMu.Unlock()
 
-	// The cloud splits configs into two collections: network
-	// templates live under /networks/{n}/device-configs, personal rows
-	// under /me/device-configs. Operators rarely care which side a
-	// label lives on when *completing* it — they just want every label
-	// they can `show --from cloud:<n>/<label>` against. Union both
-	// lists and tag the description so the per-row "mine" vs "template"
-	// distinction stays visible.
+	// Per D-219 personal rows are completed under `cloud:mine/`
+	// (`completePersonalLabels`), not here. This path completes
+	// network templates only.
 	bgCtx := context.Background()
-	templates, terr := client.ListDeviceConfigs(bgCtx, networkID)
-	mine, merr := client.ListMyDeviceConfigs(bgCtx, networkID)
-	// Tolerate partial failures — if one side errors (e.g. the operator
-	// isn't a member, or backend transient), still offer the other.
-	if terr != nil && merr != nil {
-		return nil, terr
+	templates, err := client.ListDeviceConfigs(bgCtx, networkID)
+	if err != nil {
+		return nil, err
 	}
 
 	lp := strings.ToLower(labelPrefix)
-	var items []Item
-	seenLabel := map[string]struct{}{}
-	emit := func(cfg apiclient.DeviceConfigSummary, ownerTag string) {
+	items := make([]Item, 0, len(templates.Items))
+	for _, cfg := range templates.Items {
 		if lp != "" && !strings.HasPrefix(strings.ToLower(cfg.Label), lp) &&
 			!strings.HasPrefix(strings.ToLower(cfg.ID), lp) {
-			return
+			continue
 		}
-		// Personal + template can share a label (the backend's unique
-		// indexes are per-ownership). Disambiguate with the explicit
-		// `mine/` / `template/` prefix so completion never offers two
-		// rows that produce different payloads when expanded.
-		value := valuePrefix + ownerTag + "/" + cfg.Label
-		if _, ok := seenLabel[value]; ok {
-			return
-		}
-		seenLabel[value] = struct{}{}
 		desc := cfg.Region
 		if cfg.ModemPreset != "" {
-			desc = cfg.Region + " · " + cfg.ModemPreset
+			if desc == "" {
+				desc = cfg.ModemPreset
+			} else {
+				desc = desc + " · " + cfg.ModemPreset
+			}
 		}
 		if desc == "" {
-			desc = ownerTag
+			desc = "template"
 		} else {
-			desc = ownerTag + " · " + desc
+			desc = "template · " + desc
 		}
-		items = append(items, Item{Value: value, Description: desc})
-	}
-	for _, cfg := range mine.Items {
-		emit(cfg, "mine")
-	}
-	for _, cfg := range templates.Items {
-		emit(cfg, "template")
+		items = append(items, Item{Value: valuePrefix + cfg.Label, Description: desc})
 	}
 
 	deviceConfigCacheMu.Lock()
