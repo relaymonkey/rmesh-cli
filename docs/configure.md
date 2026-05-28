@@ -101,6 +101,20 @@ Each kind supports `interval`, `on_first_seen` and `jitter`. Content-hash diffin
 
 Synthetic rows carry ingest source `edge:{agent_id}:nodedb` (passthrough uses `edge:{agent_id}`).
 
+## Overriding config from the CLI
+
+Every `rmesh agent` verb that reads `config.yaml` exposes only the override flags it actually consumes — so `rmesh agent observe --help` doesn't list `--mqtt-*` (observe never publishes), and `rmesh agent pair --help` doesn't list radio flags (it talks to the cloud API).
+
+For one-off tweaks or for keys without a dedicated flag, every config-reading verb accepts `--set path=value` (repeatable). The path is the dotted yaml key:
+
+```bash
+rmesh agent observe --set synthesise.position.interval=12m
+rmesh agent run     --set mqtt.broker_url=ssl://broker.example:8883 --set labels.site=oslo
+rmesh agent doctor  --set transport.url=ble://AA:BB:CC:DD:EE:FF
+```
+
+Typed flags (`--mqtt-broker-url …`) win over `--set` when both target the same key. Unknown paths are hard errors, so typos don't silently no-op.
+
 ## Commands
 
 ```bash
@@ -147,11 +161,18 @@ rmesh device config copy --from device --to ./backup.yaml # snapshot radio to fi
 rmesh device config copy --from ./eu-868.yaml --to device # apply file to radio
 rmesh device config copy --from cloud:home/eu-868 --to device --dry-run
 rmesh device config edit --from device                    # $EDITOR round-trip
-rmesh device config list --network <id>                   # saved configs on a network
-rmesh device config promote --from cloud:<n>/mine/<label> --to <network>
-rmesh device config delete --from cloud:<n>/mine/<label>   # --yes to skip prompt
-# Sources/destinations: device[:url], file:<path>, cloud:<network>/<label>, - (stdout)
-# Deprecated aliases: get → show; set → copy
+rmesh device config list                                  # personal library (cross-network)
+rmesh device config list --network <id>                   # templates on a network
+rmesh device config promote --from cloud:mine/<label> --to <network>      # $EDITOR preview on TTY
+rmesh device config promote --from cloud:mine/<label> --to <network> --no-edit
+rmesh device config delete --from cloud:mine/<label>      # --yes to skip prompt
+# Sources/destinations:
+#   device[:url]              live radio
+#   file:<path>               local file
+#   cloud:mine/<label>        personal library (user-scoped, no network)
+#   cloud:<network>/<label>   network template
+#   -                         stdout
+# Deprecated aliases: get → show; set → copy; cloud:<n>/mine/<label> → cloud:mine/<label>
 
 # Local agent (local radio → RelayMesh cloud)
 rmesh agent doctor      # validate config, transport, and node database connectivity

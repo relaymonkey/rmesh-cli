@@ -70,6 +70,20 @@ type CadenceConfig struct {
 
 // Load reads and validates configuration from path.
 func Load(path string) (Config, error) {
+	cfg, err := LoadRaw(path)
+	if err != nil {
+		return Config{}, err
+	}
+	if err := cfg.Finalize(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
+}
+
+// LoadRaw reads and parses the config file but does not Finalize. Callers that
+// apply CLI overrides between parse and validate use this and call Finalize
+// themselves.
+func LoadRaw(path string) (Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}, fmt.Errorf("read config: %w", err)
@@ -77,9 +91,6 @@ func Load(path string) (Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
-	}
-	if err := cfg.Finalize(); err != nil {
-		return Config{}, err
 	}
 	return cfg, nil
 }

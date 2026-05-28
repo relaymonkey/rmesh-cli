@@ -64,7 +64,7 @@ Human outcomes use ✓ / ✗ / ● / → on TTY (plain `ok` / `error` / `->` whe
   id · 742a055f-af02-4b99-a510-157ce0c34b9c
 
 ✓ Saved cloud config · eu-868
-  path · cloud:home/mine/eu-868
+  path · cloud:mine/eu-868
   id   · a46229d5-0f27-44e8-9350-5737260cfb25
 ```
 

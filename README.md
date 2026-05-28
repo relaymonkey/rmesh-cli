@@ -41,7 +41,7 @@ rmesh traffic text
 - List networks and set which one commands target by default (`network list`, `network use`)
 - Query historical traffic with the same filters and column ids as the web UI (`traffic list`, `traffic text`)
 - Stream live traffic over WebSocket (`traffic live`)
-- List, read, copy, edit and promote saved device configs on a network (`device config`)
+- List, read, copy, edit and promote saved device configs — personal library and per-network templates (`device config`)
 
 **Local node (agent)**
 

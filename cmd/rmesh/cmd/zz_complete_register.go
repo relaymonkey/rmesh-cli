@@ -47,6 +47,9 @@ func init() {
 	clicomplete.RegisterFlagDirective(deviceConfigDeleteCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
 	clicomplete.RegisterFlagDirective(deviceConfigPromoteCmd, "from", clicomplete.ConfigEndpointProvider(clicomplete.ConfigEndpointSource))
 
-	// Agent config overrides (persistent on agentCmd).
-	clicomplete.RegisterFlagDirective(agentCmd, "transport-url", clicomplete.TransportURLProvider)
+	// Agent config overrides — now scoped per verb (see D-220).
+	// `pair` deliberately has no transport-url flag.
+	clicomplete.RegisterFlagDirective(runCmd, "transport-url", clicomplete.TransportURLProvider)
+	clicomplete.RegisterFlagDirective(observeCmd, "transport-url", clicomplete.TransportURLProvider)
+	clicomplete.RegisterFlagDirective(doctorCmd, "transport-url", clicomplete.TransportURLProvider)
 }
