@@ -34,6 +34,11 @@ var (
 		register: registerMQTTFlags,
 		read:     readMQTTOverrides,
 	}
+	sectionForward = configSection{
+		name:     "forward",
+		register: registerForwardFlags,
+		read:     readForwardOverrides,
+	}
 	sectionSynthesise = configSection{
 		name:     "synthesise",
 		register: registerSynthesiseFlags,
@@ -126,6 +131,21 @@ func readMQTTOverrides(f *pflag.FlagSet, o *config.Overrides) error {
 	if f.Changed("mqtt-client-id") {
 		v, _ := f.GetString("mqtt-client-id")
 		o.MQTTClientID = &v
+	}
+	return nil
+}
+
+// --- forward ---
+
+func registerForwardFlags(f *pflag.FlagSet) {
+	f.Bool("ignore-ok-to-mqtt", false, "forward passthrough packets even when the sender cleared the Meshtastic ok_to_mqtt consent bit (overrides forward.respect_ok_to_mqtt)")
+}
+
+func readForwardOverrides(f *pflag.FlagSet, o *config.Overrides) error {
+	if f.Changed("ignore-ok-to-mqtt") {
+		ignore, _ := f.GetBool("ignore-ok-to-mqtt")
+		respect := !ignore
+		o.RespectOkToMqtt = &respect
 	}
 	return nil
 }

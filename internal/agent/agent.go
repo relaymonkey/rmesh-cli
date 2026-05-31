@@ -198,12 +198,12 @@ func (a *runtime) handlePacket(ctx context.Context, packet *proto.MeshPacket, sy
 	if packet == nil {
 		return nil
 	}
-	var env *proto.ServiceEnvelope
-	if synthetic {
-		env = envelope.WrapSynthetic(packet, a.gatewayID, a.channel.ChannelID)
-	} else {
-		env = envelope.WrapPassthrough(packet, a.gatewayID, a.channel.ChannelID)
-	}
+
+	// Honour the sender's Meshtastic ok_to_mqtt consent bit on passthrough
+	// traffic. Synthetic NodeDB packets are the operator's own derived data
+	// and are never filtered.
+	dropped := !synthetic && a.cfg.Forward.RespectOk() && !okToMqtt(packet)
+
 	topic := envelope.PublishTopic(a.cfg.MQTT.TopicPrefix, a.channel.ChannelID, a.gatewayID)
 	source := labels.IngestSource(a.cfg.AgentID)
 	if synthetic {
@@ -211,6 +211,10 @@ func (a *runtime) handlePacket(ctx context.Context, packet *proto.MeshPacket, sy
 	}
 
 	if a.opts.Observe {
+		dropReason := ""
+		if dropped {
+			dropReason = "ok_to_mqtt"
+		}
 		return a.sink.Write(observe.Event{
 			Kind:         "packet",
 			IngestSource: source,
@@ -222,7 +226,26 @@ func (a *runtime) handlePacket(ctx context.Context, packet *proto.MeshPacket, sy
 			PacketID:     packet.GetId(),
 			Portnum:      observe.Portnum(packet),
 			Synthetic:    synthetic,
+			Dropped:      dropReason,
 		})
+	}
+
+	if dropped {
+		if a.opts.Verbose {
+			slog.Debug("dropped passthrough: sender opted out of mqtt",
+				"from", nodeid.FromNum(packet.GetFrom()),
+				"portnum", observe.Portnum(packet),
+				"packet_id", packet.GetId(),
+			)
+		}
+		return nil
+	}
+
+	var env *proto.ServiceEnvelope
+	if synthetic {
+		env = envelope.WrapSynthetic(packet, a.gatewayID, a.channel.ChannelID)
+	} else {
+		env = envelope.WrapPassthrough(packet, a.gatewayID, a.channel.ChannelID)
 	}
 	var err error
 	if synthetic {

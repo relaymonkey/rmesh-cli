@@ -32,6 +32,9 @@ type Event struct {
 	PacketID     uint32            `json:"packet_id"`
 	Portnum      uint32            `json:"portnum,omitempty"`
 	Synthetic    bool              `json:"synthetic"`
+	// Dropped is the reason a passthrough packet would not be published
+	// (currently only "ok_to_mqtt"). Empty when the packet is forwarded.
+	Dropped string `json:"dropped,omitempty"`
 }
 
 // Write logs one envelope observation as JSONL.

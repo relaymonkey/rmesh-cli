@@ -45,7 +45,7 @@ rmesh traffic text
 
 **Local node (agent)**
 
-- Connect a radio over serial, HTTP, or BLE and forward packets to RelayMesh (`agent run`)
+- Connect a radio over serial, HTTP, or BLE and forward packets to RelayMesh, honouring each sender's `ok_to_mqtt` consent by default (`agent run`)
 - Dry-run ingest as JSONL without publishing (`agent observe`)
 - Validate config, transport, and node database connectivity (`agent doctor`)
 

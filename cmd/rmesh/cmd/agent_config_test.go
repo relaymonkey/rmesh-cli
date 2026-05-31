@@ -33,14 +33,14 @@ func TestVerbFlagSurfaces(t *testing.T) {
 			cmd: runCmd,
 			mustHave: []string{
 				"agent-id", "transport-url", "ble-pin",
-				"mqtt-broker-url", "mqtt-username",
+				"mqtt-broker-url", "mqtt-username", "ignore-ok-to-mqtt",
 				"synthesise-position-interval", "label", "set",
 			},
 		},
 		{
 			cmd: observeCmd,
 			mustHave: []string{
-				"agent-id", "transport-url",
+				"agent-id", "transport-url", "ignore-ok-to-mqtt",
 				"synthesise-position-interval", "label", "set",
 			},
 			// observe never publishes — MQTT flags would be a lie.
@@ -56,6 +56,9 @@ func TestVerbFlagSurfaces(t *testing.T) {
 				"mqtt-broker-url", "synthesise-position-interval",
 				"label", "set",
 			},
+			// doctor validates connectivity; it never forwards packets, so the
+			// consent filter is not its concern.
+			mustNot: []string{"ignore-ok-to-mqtt"},
 		},
 		{
 			cmd: pairCmd,
@@ -63,7 +66,7 @@ func TestVerbFlagSurfaces(t *testing.T) {
 			mustNot: []string{
 				"agent-id", "transport-url", "ble-pin",
 				"mqtt-broker-url", "synthesise-position-interval",
-				"label", "set",
+				"ignore-ok-to-mqtt", "label", "set",
 			},
 		},
 	}

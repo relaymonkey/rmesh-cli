@@ -58,4 +58,33 @@ labels:
 	if !cfg.Synthesise.NodeInfo.Enabled {
 		t.Fatal("expected nodeinfo synthesis enabled by default")
 	}
+	if !cfg.Forward.RespectOk() {
+		t.Fatal("expected forward.respect_ok_to_mqtt to default true")
+	}
+}
+
+func TestLoadHonoursForwardOptOut(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	content := `
+transport:
+  url: serial:/dev/ttyUSB0
+mqtt:
+  broker_url: mqtt://localhost:1883
+  username: user
+  password: secret
+  topic_prefix: rm/n/abcd1234
+forward:
+  respect_ok_to_mqtt: false
+`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Forward.RespectOk() {
+		t.Fatal("expected forward.respect_ok_to_mqtt=false to be honoured")
+	}
 }

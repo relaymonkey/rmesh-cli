@@ -27,8 +27,23 @@ type Config struct {
 	AgentID    string            `yaml:"agent_id"`
 	Transport  TransportConfig   `yaml:"transport"`
 	MQTT       MQTTConfig        `yaml:"mqtt"`
+	Forward    ForwardConfig     `yaml:"forward"`
 	Labels     map[string]string `yaml:"labels"`
 	Synthesise SynthesiseConfig  `yaml:"synthesise"`
+}
+
+// ForwardConfig governs which observed packets are eligible for publish.
+type ForwardConfig struct {
+	// RespectOkToMqtt drops passthrough packets whose sender explicitly cleared
+	// the Meshtastic ok_to_mqtt consent bit (decoded Data.bitfield bit 0).
+	// Synthetic NodeDB traffic and packets this gateway cannot decode are never
+	// affected. Nil means unset; the default is true.
+	RespectOkToMqtt *bool `yaml:"respect_ok_to_mqtt,omitempty"`
+}
+
+// RespectOk reports the effective ok_to_mqtt policy (defaults to true).
+func (f ForwardConfig) RespectOk() bool {
+	return f.RespectOkToMqtt == nil || *f.RespectOkToMqtt
 }
 
 // TransportConfig selects the local radio connection.
@@ -158,6 +173,10 @@ func (c *Config) applyDefaults() {
 	}
 	if c.MQTT.ClientID == "" {
 		c.MQTT.ClientID = "rmesh-" + c.AgentID
+	}
+	if c.Forward.RespectOkToMqtt == nil {
+		on := true
+		c.Forward.RespectOkToMqtt = &on
 	}
 	if c.Synthesise.NodeDBPoll == 0 {
 		c.Synthesise.NodeDBPoll = 5 * time.Minute

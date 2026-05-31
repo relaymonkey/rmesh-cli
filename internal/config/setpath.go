@@ -88,6 +88,12 @@ func assignScalar(field reflect.Value, raw string) error {
 	if !field.CanSet() {
 		return fmt.Errorf("field is not settable")
 	}
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		return assignScalar(field.Elem(), raw)
+	}
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(raw)

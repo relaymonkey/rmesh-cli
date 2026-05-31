@@ -12,6 +12,12 @@ mqtt:
   password: your-mqtt-password
   topic_prefix: rm/n/your-network-id
 
+forward:
+  # Drop passthrough packets whose sender cleared the Meshtastic ok_to_mqtt
+  # consent bit. Default true. Set false (or pass --ignore-ok-to-mqtt) to
+  # forward everything regardless of the sender's preference.
+  respect_ok_to_mqtt: true
+
 labels:
   contributor: you@example.com
   site: example-site

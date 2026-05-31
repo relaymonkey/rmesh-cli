@@ -30,10 +30,15 @@ func TestApplySetPaths(t *testing.T) {
 		"synthesise.position.enabled=false",
 		"synthesise.position.interval=12m30s",
 		"synthesise.nodedb_poll=2m",
+		"forward.respect_ok_to_mqtt=false",
 		"labels.role=observer",
 	})
 	if err != nil {
 		t.Fatalf("ApplySetPaths: %v", err)
+	}
+
+	if cfg.Forward.RespectOkToMqtt == nil || *cfg.Forward.RespectOkToMqtt {
+		t.Errorf("forward.respect_ok_to_mqtt should be set to false, got %v", cfg.Forward.RespectOkToMqtt)
 	}
 
 	if cfg.AgentID != "cli-agent" {

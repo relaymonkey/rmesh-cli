@@ -93,6 +93,28 @@ Local dev — see [developing.md](developing.md).
 
 Free-form string map stamped on every publish via MQTT 5 user property `relaymesh_labels`. Keys prefixed `relaymesh.` are reserved for cloud metadata.
 
+## Forwarding (ok_to_mqtt consent)
+
+Meshtastic packets can carry a per-packet consent bit (`ok_to_mqtt`, bit 0 of the decoded `Data.bitfield`) that signals whether the sender is willing to have the packet uploaded to MQTT. Modern firmware stamps this bit on every packet it originates, driven by the device's `config.lora.config_ok_to_mqtt` setting.
+
+By default `rmesh agent` **honours that consent**: a passthrough packet whose sender explicitly cleared the bit is dropped (not published). Packets with no decoded bitfield — older firmware, relayed traffic, or packets this gateway cannot decrypt — make no statement and are forwarded. Synthetic NodeDB traffic (`nodeinfo` / `position` / `mapreport`) is the operator's own derived data and is never filtered.
+
+| Field | Default | Description |
+|---|---|---|
+| `forward.respect_ok_to_mqtt` | `true` | Drop passthrough packets whose sender cleared the `ok_to_mqtt` bit |
+
+Forward everything regardless of the sender's preference (the pre-`D-232` behaviour):
+
+```bash
+rmesh agent run --ignore-ok-to-mqtt
+# or persist it in config.yaml:
+rmesh agent run --set forward.respect_ok_to_mqtt=false
+```
+
+`--ignore-ok-to-mqtt` is a presence flag; it overrides `forward.respect_ok_to_mqtt` from the config file for that run.
+
+> **Note:** Meshtastic's `config.lora.config_ok_to_mqtt` defaults to **off**, so a device left on factory defaults clears the bit on its own packets — those packets are filtered while the default policy is on. Either enable `config_ok_to_mqtt` on the originating devices, or run with `--ignore-ok-to-mqtt`, to forward that traffic. Use `rmesh agent observe` to preview what would be dropped: filtered packets appear with a `"dropped":"ok_to_mqtt"` field in the JSONL.
+
 ## Synthesis cadence
 
 `rmesh agent` synthesises **nodeinfo**, **position**, and **map report** traffic from the local node database for kinds the cloud cannot infer from RF-only ghosts.

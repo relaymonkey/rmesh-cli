@@ -15,14 +15,16 @@ type Overrides struct {
 	MQTTTopicPrefix *string
 	MQTTClientID    *string
 
+	RespectOkToMqtt *bool
+
 	Labels map[string]string
 
 	SynthesiseNodeDBPoll *time.Duration
 
-	NodeInfoEnabled   *bool
-	NodeInfoInterval  *time.Duration
+	NodeInfoEnabled     *bool
+	NodeInfoInterval    *time.Duration
 	NodeInfoOnFirstSeen *bool
-	NodeInfoJitter    *time.Duration
+	NodeInfoJitter      *time.Duration
 
 	PositionEnabled                  *bool
 	PositionInterval                 *time.Duration
@@ -30,10 +32,10 @@ type Overrides struct {
 	PositionJitter                   *time.Duration
 	PositionRespectPositionPrecision *bool
 
-	MapReportEnabled      *bool
-	MapReportInterval     *time.Duration
-	MapReportOnFirstSeen  *bool
-	MapReportJitter       *time.Duration
+	MapReportEnabled     *bool
+	MapReportInterval    *time.Duration
+	MapReportOnFirstSeen *bool
+	MapReportJitter      *time.Duration
 }
 
 // Apply merges non-nil override fields into cfg.
@@ -61,6 +63,9 @@ func (o Overrides) Apply(cfg *Config) {
 	}
 	if o.MQTTClientID != nil {
 		cfg.MQTT.ClientID = *o.MQTTClientID
+	}
+	if o.RespectOkToMqtt != nil {
+		cfg.Forward.RespectOkToMqtt = o.RespectOkToMqtt
 	}
 	if len(o.Labels) > 0 {
 		if cfg.Labels == nil {

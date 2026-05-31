@@ -25,13 +25,19 @@ func TestOverridesApply(t *testing.T) {
 	transport := "ble://Meshtastic_ab12"
 	interval := 15 * time.Minute
 	enabled := false
+	respect := false
 	overrides := config.Overrides{
-		TransportURL: &transport,
-		Labels:       map[string]string{"site": "west", "role": "observer"},
-		PositionEnabled: &enabled,
+		TransportURL:     &transport,
+		Labels:           map[string]string{"site": "west", "role": "observer"},
+		PositionEnabled:  &enabled,
 		PositionInterval: &interval,
+		RespectOkToMqtt:  &respect,
 	}
 	overrides.Apply(&cfg)
+
+	if cfg.Forward.RespectOk() {
+		t.Fatal("expected forward.respect_ok_to_mqtt override to false")
+	}
 
 	if cfg.Transport.URL != transport {
 		t.Fatalf("transport.url = %q", cfg.Transport.URL)

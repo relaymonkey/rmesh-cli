@@ -22,9 +22,9 @@ func init() {
 	// `pair` deliberately gets no agent-config flags: it talks to the
 	// cloud API, not the radio.
 	bindConfigSections(runCmd,
-		sectionIdentity, sectionTransport, sectionMQTT, sectionSynthesise, sectionLabels)
+		sectionIdentity, sectionTransport, sectionMQTT, sectionForward, sectionSynthesise, sectionLabels)
 	bindConfigSections(observeCmd,
-		sectionIdentity, sectionTransport, sectionSynthesise, sectionLabels)
+		sectionIdentity, sectionTransport, sectionForward, sectionSynthesise, sectionLabels)
 	bindConfigSections(doctorCmd,
 		sectionIdentity, sectionTransport, sectionMQTT, sectionSynthesise, sectionLabels)
 
