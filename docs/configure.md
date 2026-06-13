@@ -115,6 +115,22 @@ rmesh agent run --set forward.respect_ok_to_mqtt=false
 
 > **Note:** Meshtastic's `config.lora.config_ok_to_mqtt` defaults to **off**, so a device left on factory defaults clears the bit on its own packets — those packets are filtered while the default policy is on. Either enable `config_ok_to_mqtt` on the originating devices, or run with `--ignore-ok-to-mqtt`, to forward that traffic. Use `rmesh agent observe` to preview what would be dropped: filtered packets appear with a `"dropped":"ok_to_mqtt"` field in the JSONL.
 
+## Metrics (Prometheus)
+
+Optional local `/metrics` for per-node channel utilization and TX airtime gauges. **Off by default.** Behaviour, scrape examples, and ChU vs airtime semantics: **[metrics.md](metrics.md)**.
+
+| Field | Default | Description |
+|---|---|---|
+| `metrics.enabled` | `false` | Expose Prometheus `/metrics` on the agent host |
+| `metrics.listen_addr` | `127.0.0.1:19092` | HTTP bind address (loopback; use `0.0.0.0:19092` for a remote scraper) |
+| `metrics.nodedb_refresh_interval` | `0` | NodeDB gauge refresh; `0` inherits `synthesise.nodedb_poll` |
+
+```bash
+rmesh agent run --metrics-enabled
+rmesh agent observe --metrics-enabled
+rmesh agent run --metrics-enabled --metrics-listen-addr 0.0.0.0:19092
+```
+
 ## Synthesis cadence
 
 `rmesh agent` synthesises **nodeinfo**, **position**, and **map report** traffic from the local node database for kinds the cloud cannot infer from RF-only ghosts.
@@ -200,6 +216,7 @@ rmesh device config delete --from cloud:mine/<label>      # --yes to skip prompt
 rmesh agent doctor      # validate config, transport, and node database connectivity
 rmesh agent observe     # JSONL dry-run, no cloud publish
 rmesh agent run         # production publish
+rmesh agent run --metrics-enabled   # also expose Prometheus /metrics (see metrics.md)
 rmesh agent pair        # requires auth; cloud pairing API stub
 
 # Shell

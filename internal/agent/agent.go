@@ -19,9 +19,11 @@ import (
 	"github.com/relaymonkey/relaymesh-edge/internal/envelope"
 	"github.com/relaymonkey/relaymesh-edge/internal/forwarder"
 	"github.com/relaymonkey/relaymesh-edge/internal/labels"
+	rmmetrics "github.com/relaymonkey/relaymesh-edge/internal/metrics"
 	"github.com/relaymonkey/relaymesh-edge/internal/nodeid"
 	"github.com/relaymonkey/relaymesh-edge/internal/observe"
 	"github.com/relaymonkey/relaymesh-edge/internal/synthesise"
+	rmtelemetry "github.com/relaymonkey/relaymesh-edge/internal/telemetry"
 	rmtransport "github.com/relaymonkey/relaymesh-edge/internal/transport"
 )
 
@@ -68,6 +70,17 @@ func Run(ctx context.Context, cfg config.Config, opts Options) error {
 		a.emitState = make(map[emitKey]time.Time)
 	}
 
+	if cfg.Metrics.Enabled {
+		a.metrics = rmmetrics.NewRegistry(cfg.AgentID, gatewayID)
+		a.pushAllNodeDBMetrics()
+		go func() {
+			if err := rmmetrics.Start(ctx, cfg.Metrics.ListenAddr, a.metrics); err != nil && !errors.Is(err, context.Canceled) {
+				slog.Error("metrics server stopped", "err", err)
+			}
+		}()
+		go a.metricsRefreshLoop(ctx)
+	}
+
 	if opts.Observe {
 		out := opts.ObserveOut
 		if out == nil {
@@ -89,6 +102,7 @@ func Run(ctx context.Context, cfg config.Config, opts Options) error {
 		"channel", channel.ChannelID,
 		"nodes", len(a.nodes),
 		"observe", opts.Observe,
+		"metrics", cfg.Metrics.Enabled,
 	)
 
 	errCh := make(chan error, 1)
@@ -146,6 +160,7 @@ type runtime struct {
 	transport meshtastic.HardwareTransport
 	pub       *forwarder.Publisher
 	sink      *observe.Sink
+	metrics   *rmmetrics.Registry
 	gatewayID string
 	channel   envelope.ChannelMeta
 	mu        sync.Mutex
@@ -197,6 +212,10 @@ func (a *runtime) refreshAndSynthesise(ctx context.Context) error {
 func (a *runtime) handlePacket(ctx context.Context, packet *proto.MeshPacket, synthetic bool) error {
 	if packet == nil {
 		return nil
+	}
+
+	if !synthetic {
+		a.recordPacketMetrics(packet)
 	}
 
 	// Honour the sender's Meshtastic ok_to_mqtt consent bit on passthrough
@@ -361,6 +380,72 @@ func (a *runtime) storeNode(node *proto.NodeInfo) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.nodes[node.Num] = node
+	if a.metrics != nil {
+		if num, dm, ok := rmtelemetry.DeviceMetricsFromNodeInfo(node); ok {
+			a.metrics.UpdateDeviceMetrics(num, rmmetrics.SourceNodeDB, dm)
+		}
+	}
+}
+
+func (a *runtime) recordPacketMetrics(packet *proto.MeshPacket) {
+	if a.metrics == nil {
+		return
+	}
+	if num, dm, ok := rmtelemetry.ExtractDeviceMetrics(packet); ok {
+		a.metrics.UpdateDeviceMetrics(num, rmmetrics.SourceTelemetry, dm)
+	}
+}
+
+func (a *runtime) pushAllNodeDBMetrics() {
+	if a.metrics == nil {
+		return
+	}
+	a.mu.Lock()
+	nodes := make([]*proto.NodeInfo, 0, len(a.nodes))
+	for _, n := range a.nodes {
+		nodes = append(nodes, n)
+	}
+	a.mu.Unlock()
+	for _, node := range nodes {
+		if num, dm, ok := rmtelemetry.DeviceMetricsFromNodeInfo(node); ok {
+			a.metrics.UpdateDeviceMetrics(num, rmmetrics.SourceNodeDB, dm)
+		}
+	}
+}
+
+func (a *runtime) metricsRefreshLoop(ctx context.Context) {
+	interval := a.cfg.EffectiveNodeDBRefreshInterval()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			a.onMetricsRefreshTick(ctx)
+		}
+	}
+}
+
+func (a *runtime) onMetricsRefreshTick(ctx context.Context) {
+	if a.metrics == nil {
+		return
+	}
+	refresh := a.cfg.EffectiveNodeDBRefreshInterval()
+	if refresh < a.cfg.Synthesise.NodeDBPoll {
+		state, err := rmdevice.GetState(ctx, a.transport)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) {
+				slog.Warn("metrics nodedb refresh failed", "err", err)
+			}
+			return
+		}
+		for _, n := range state.Nodes {
+			a.storeNode(n)
+		}
+		return
+	}
+	a.pushAllNodeDBMetrics()
 }
 
 func gatewayFromState(state meshtastic.DeviceState) string {

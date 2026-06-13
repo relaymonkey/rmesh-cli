@@ -22,6 +22,11 @@ const (
 	DefaultBLEPin = "123456"
 )
 
+const (
+	DefaultMetricsListenAddr     = "127.0.0.1:19092"
+	MinMetricsNodeDBRefresh      = 10 * time.Second
+)
+
 // Config is the on-disk agent configuration.
 type Config struct {
 	AgentID    string            `yaml:"agent_id"`
@@ -30,6 +35,14 @@ type Config struct {
 	Forward    ForwardConfig     `yaml:"forward"`
 	Labels     map[string]string `yaml:"labels"`
 	Synthesise SynthesiseConfig  `yaml:"synthesise"`
+	Metrics    MetricsConfig     `yaml:"metrics"`
+}
+
+// MetricsConfig controls the optional local Prometheus /metrics endpoint.
+type MetricsConfig struct {
+	Enabled               bool          `yaml:"enabled"`
+	ListenAddr            string        `yaml:"listen_addr"`
+	NodeDBRefreshInterval time.Duration `yaml:"nodedb_refresh_interval"`
 }
 
 // ForwardConfig governs which observed packets are eligible for publish.
@@ -161,7 +174,19 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("labels: value for %q exceeds %d chars", k, MaxLabelValueLen)
 		}
 	}
+	if c.Metrics.NodeDBRefreshInterval > 0 && c.Metrics.NodeDBRefreshInterval < MinMetricsNodeDBRefresh {
+		return fmt.Errorf("metrics.nodedb_refresh_interval must be at least %s when set", MinMetricsNodeDBRefresh)
+	}
 	return nil
+}
+
+// EffectiveNodeDBRefreshInterval returns the NodeDB poll cadence used for
+// metrics gauge refresh. Zero in config inherits synthesise.nodedb_poll.
+func (c Config) EffectiveNodeDBRefreshInterval() time.Duration {
+	if c.Metrics.NodeDBRefreshInterval > 0 {
+		return c.Metrics.NodeDBRefreshInterval
+	}
+	return c.Synthesise.NodeDBPoll
 }
 
 func (c *Config) applyDefaults() {
@@ -184,6 +209,9 @@ func (c *Config) applyDefaults() {
 	applyCadenceDefaults(&c.Synthesise.NodeInfo, 6*time.Hour, true)
 	applyCadenceDefaults(&c.Synthesise.Position, 30*time.Minute, false)
 	applyCadenceDefaults(&c.Synthesise.MapReport, 6*time.Hour, false)
+	if c.Metrics.ListenAddr == "" {
+		c.Metrics.ListenAddr = DefaultMetricsListenAddr
+	}
 }
 
 func applyCadenceDefaults(c *CadenceConfig, interval time.Duration, onFirst bool) {

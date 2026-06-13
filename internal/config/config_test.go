@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/config"
 )
@@ -86,5 +87,47 @@ forward:
 	}
 	if cfg.Forward.RespectOk() {
 		t.Fatal("expected forward.respect_ok_to_mqtt=false to be honoured")
+	}
+}
+
+func TestMetricsNodeDBRefreshInheritsPoll(t *testing.T) {
+	cfg := config.Config{
+		Transport: config.TransportConfig{URL: "serial:/dev/ttyUSB0"},
+		MQTT: config.MQTTConfig{
+			BrokerURL:   "mqtt://localhost:1883",
+			Username:    "user",
+			Password:    "secret",
+			TopicPrefix: "rm/n/abcd1234",
+		},
+		Synthesise: config.SynthesiseConfig{NodeDBPoll: 7 * time.Minute},
+	}
+	if err := cfg.Finalize(); err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.EffectiveNodeDBRefreshInterval(); got != 7*time.Minute {
+		t.Fatalf("inherit = %v", got)
+	}
+	cfg.Metrics.NodeDBRefreshInterval = 30 * time.Second
+	if err := cfg.Finalize(); err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.EffectiveNodeDBRefreshInterval(); got != 30*time.Second {
+		t.Fatalf("override = %v", got)
+	}
+}
+
+func TestMetricsRefreshIntervalMin(t *testing.T) {
+	cfg := config.Config{
+		Transport: config.TransportConfig{URL: "serial:/dev/ttyUSB0"},
+		MQTT: config.MQTTConfig{
+			BrokerURL:   "mqtt://localhost:1883",
+			Username:    "user",
+			Password:    "secret",
+			TopicPrefix: "rm/n/abcd1234",
+		},
+		Metrics: config.MetricsConfig{NodeDBRefreshInterval: 2 * time.Second},
+	}
+	if err := cfg.Finalize(); err == nil {
+		t.Fatal("expected min interval error")
 	}
 }

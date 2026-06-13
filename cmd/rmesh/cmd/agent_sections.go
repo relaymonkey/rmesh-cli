@@ -49,6 +49,11 @@ var (
 		register: registerLabelsFlags,
 		read:     readLabelsOverrides,
 	}
+	sectionMetrics = configSection{
+		name:     "metrics",
+		register: registerMetricsFlags,
+		read:     readMetricsOverrides,
+	}
 )
 
 // bindConfigSections registers the section flags on cmd and stores the section
@@ -249,6 +254,30 @@ func parseLabelOverrides(pairs []string) (map[string]string, error) {
 		out[key] = value
 	}
 	return out, nil
+}
+
+// --- metrics ---
+
+func registerMetricsFlags(f *pflag.FlagSet) {
+	f.Bool("metrics-enabled", false, "expose Prometheus /metrics for local node RF gauges")
+	f.String("metrics-listen-addr", "", "override metrics.listen_addr (default 127.0.0.1:19092)")
+	f.Duration("metrics-nodedb-refresh-interval", 0, "override metrics.nodedb_refresh_interval (0 inherits synthesise.nodedb_poll)")
+}
+
+func readMetricsOverrides(f *pflag.FlagSet, o *config.Overrides) error {
+	if f.Changed("metrics-enabled") {
+		v, _ := f.GetBool("metrics-enabled")
+		o.MetricsEnabled = &v
+	}
+	if f.Changed("metrics-listen-addr") {
+		v, _ := f.GetString("metrics-listen-addr")
+		o.MetricsListenAddr = &v
+	}
+	if f.Changed("metrics-nodedb-refresh-interval") {
+		v, _ := f.GetDuration("metrics-nodedb-refresh-interval")
+		o.MetricsNodeDBRefreshInterval = &v
+	}
+	return nil
 }
 
 func splitKV(s string) (string, string, bool) {

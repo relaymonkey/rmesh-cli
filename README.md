@@ -47,6 +47,7 @@ rmesh traffic text
 
 - Connect a radio over serial, HTTP, or BLE and forward packets to RelayMesh, honouring each sender's `ok_to_mqtt` consent by default (`agent run`)
 - Dry-run ingest as JSONL without publishing (`agent observe`)
+- Expose local Prometheus metrics for channel utilization and TX airtime (`agent run --metrics-enabled`; see [metrics.md](docs/metrics.md))
 - Validate config, transport, and node database connectivity (`agent doctor`)
 
 **Local device**
@@ -61,6 +62,7 @@ rmesh traffic text
 ## Documentation
 
 - [Configuration and commands](docs/configure.md)
+- [Prometheus metrics (agent)](docs/metrics.md)
 - [Build, local dev and contributing](docs/developing.md)
 
 ## License

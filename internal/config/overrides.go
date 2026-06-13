@@ -36,6 +36,10 @@ type Overrides struct {
 	MapReportInterval    *time.Duration
 	MapReportOnFirstSeen *bool
 	MapReportJitter      *time.Duration
+
+	MetricsEnabled               *bool
+	MetricsListenAddr            *string
+	MetricsNodeDBRefreshInterval *time.Duration
 }
 
 // Apply merges non-nil override fields into cfg.
@@ -100,6 +104,16 @@ func (o Overrides) Apply(cfg *Config) {
 		Jitter:    o.MapReportJitter,
 		RespectPP: nil,
 	})
+
+	if o.MetricsEnabled != nil {
+		cfg.Metrics.Enabled = *o.MetricsEnabled
+	}
+	if o.MetricsListenAddr != nil {
+		cfg.Metrics.ListenAddr = *o.MetricsListenAddr
+	}
+	if o.MetricsNodeDBRefreshInterval != nil {
+		cfg.Metrics.NodeDBRefreshInterval = *o.MetricsNodeDBRefreshInterval
+	}
 }
 
 type cadenceOverride struct {
