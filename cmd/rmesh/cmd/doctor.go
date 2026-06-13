@@ -12,13 +12,14 @@ import (
 	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
 	rmdevice "github.com/relaymonkey/relaymesh-edge/internal/device"
 	"github.com/relaymonkey/relaymesh-edge/internal/envelope"
+	rmmetrics "github.com/relaymonkey/relaymesh-edge/internal/metrics"
 	"github.com/relaymonkey/relaymesh-edge/internal/nodeid"
 	rmtransport "github.com/relaymonkey/relaymesh-edge/internal/transport"
 )
 
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
-	Short: "Diagnose config, transport, and node database connectivity",
+	Short: "Diagnose config, transport, metrics port, and node database connectivity",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ui := cliui.New(cmd.OutOrStdout())
 		errUI := cliui.New(cmd.ErrOrStderr())
@@ -40,6 +41,23 @@ var doctorCmd = &cobra.Command{
 		}
 		if strings.Contains(cfg.Transport.URL, "Bluetooth-Incoming-Port") {
 			if err := ui.Warn("Bluetooth-Incoming-Port is not a mesh radio — use cu.usbmodem* or cu.usbserial*"); err != nil {
+				return err
+			}
+		}
+
+		if cfg.Metrics.Enabled {
+			addr := cfg.Metrics.ListenAddr
+			if err := rmmetrics.CheckListenAddr(addr); err != nil {
+				_ = errUI.Fail("Metrics port unavailable",
+					cliui.Field{Key: "listen_addr", Value: addr},
+					cliui.Field{Key: "error", Value: err.Error()},
+				)
+				return err
+			}
+			if err := ui.Success("Metrics",
+				cliui.Field{Key: "listen_addr", Value: addr},
+				cliui.Field{Key: "bind", Value: "available"},
+			); err != nil {
 				return err
 			}
 		}

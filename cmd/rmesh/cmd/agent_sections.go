@@ -260,7 +260,7 @@ func parseLabelOverrides(pairs []string) (map[string]string, error) {
 
 func registerMetricsFlags(f *pflag.FlagSet) {
 	f.Bool("metrics-enabled", false, "expose Prometheus /metrics for local node RF gauges")
-	f.String("metrics-listen-addr", "", "override metrics.listen_addr (default 127.0.0.1:19092)")
+	f.String("metrics-listen-addr", "", "override metrics.listen_addr (default 127.0.0.1:9090)")
 	f.Duration("metrics-nodedb-refresh-interval", 0, "override metrics.nodedb_refresh_interval (0 inherits synthesise.nodedb_poll)")
 }
 

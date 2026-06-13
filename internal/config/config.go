@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	DefaultMetricsListenAddr     = "127.0.0.1:19092"
+	DefaultMetricsListenAddr     = "127.0.0.1:9090"
 	MinMetricsNodeDBRefresh      = 10 * time.Second
 )
 

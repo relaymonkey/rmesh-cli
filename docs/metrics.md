@@ -4,6 +4,20 @@
 
 The endpoint is **optional and off by default**. It complements RelayMesh cloud analytics; it does not replace them.
 
+## Why a local HTTP listener?
+
+Prometheus scrapes targets with periodic HTTP GETs. Operators who chart mesh RF gauges in their own Grafana stack need a scrape endpoint on the **same host that already runs `rmesh`** — not a second machine, exporter package, or MQTT tap wired only for observability.
+
+`rmesh agent` embeds `/metrics` in the existing process that owns the radio connection. There is no separate metrics daemon to install or supervise. Enabling metrics adds one TCP listener on the edge box; disabling it removes that listener entirely.
+
+**MQTT to RelayMesh** remains the path for cloud analytics and multi-network governance. **Local `/metrics`** is for on-prem Grafana — especially with `agent observe`, where packets never leave the machine.
+
+Before a long run, verify the bind address is free:
+
+```bash
+rmesh agent doctor --metrics-enabled
+```
+
 ## Quick start
 
 ```bash
@@ -15,7 +29,7 @@ rmesh agent observe --metrics-enabled
 Verify the endpoint (default bind is loopback only):
 
 ```bash
-curl -s http://127.0.0.1:19092/metrics | grep rmesh_node
+curl -s http://127.0.0.1:9090/metrics | grep rmesh_node
 ```
 
 Enable persistently in `config.yaml`:
@@ -23,15 +37,15 @@ Enable persistently in `config.yaml`:
 ```yaml
 metrics:
   enabled: true
-  # listen_addr: "127.0.0.1:19092"   # default
-  # nodedb_refresh_interval: 0       # inherit synthesise.nodedb_poll (5m)
+  # listen_addr: "127.0.0.1:9090"   # default
+  # nodedb_refresh_interval: 0      # inherit synthesise.nodedb_poll (5m)
 ```
 
 CLI overrides:
 
 ```bash
 rmesh agent run --metrics-enabled
-rmesh agent run --metrics-enabled --metrics-listen-addr 0.0.0.0:19092
+rmesh agent run --metrics-enabled --metrics-listen-addr 0.0.0.0:9090
 rmesh agent run --metrics-enabled --metrics-nodedb-refresh-interval 30s
 ```
 
@@ -40,14 +54,14 @@ rmesh agent run --metrics-enabled --metrics-nodedb-refresh-interval 30s
 | Key | Default | Description |
 |-----|---------|-------------|
 | `metrics.enabled` | `false` | Start the HTTP `/metrics` server |
-| `metrics.listen_addr` | `127.0.0.1:19092` | TCP bind address |
+| `metrics.listen_addr` | `127.0.0.1:9090` | TCP bind address |
 | `metrics.nodedb_refresh_interval` | `0` | NodeDB gauge refresh; `0` inherits `synthesise.nodedb_poll` |
 
 **Listen address**
 
-- **Default `127.0.0.1:19092`** — reachable only on the host running `rmesh`. Use this when Prometheus scrapes locally.
-- **Port `19092`** — chosen to avoid common conflicts (for example Docker Desktop on `:9092` and other services on nearby ports).
-- **Remote scraper** — set `metrics.listen_addr` to `0.0.0.0:19092` or the host's LAN address, and restrict access with a host firewall. The endpoint has **no authentication** (see [Security](#security)).
+- **Default `127.0.0.1:9090`** — the standard Prometheus port, reachable only on the host running `rmesh`. Use this when Prometheus scrapes locally.
+- **Conflict?** If something already owns `:9090` (a co-located Prometheus server, another exporter), set `metrics.listen_addr` to any free port. `rmesh agent doctor --metrics-enabled` tells you before the run.
+- **Remote scraper** — set `metrics.listen_addr` to `0.0.0.0:9090` or the host's LAN address, and restrict access with a host firewall. The endpoint has **no authentication** (see [Security](#security)).
 
 See [`configure.md`](configure.md) for transport, MQTT, synthesis, and other agent settings.
 
@@ -99,10 +113,10 @@ scrape_configs:
   - job_name: rmesh
     scrape_interval: 30s
     static_configs:
-      - targets: ["192.168.1.50:19092"]
+      - targets: ["192.168.1.50:9090"]
 ```
 
-When Prometheus runs on the same machine, scrape `127.0.0.1:19092`.
+When Prometheus runs on the same machine, scrape `127.0.0.1:9090`.
 
 ## Grafana
 
@@ -136,7 +150,7 @@ One label set per heard `node_id`. Series are not removed automatically when a n
 | Symptom | Likely cause |
 |---------|----------------|
 | `connection refused` | Metrics not enabled, or agent not running |
-| `curl: (52) Empty reply from server` | Another process owns the port; check `lsof -i :19092` and set a different `metrics.listen_addr` |
+| `curl: (52) Empty reply from server` | Another process owns the port — run `rmesh agent doctor --metrics-enabled`, check `lsof -i :9090`, or set a different `metrics.listen_addr` |
 | HTTP 200 but no `rmesh_node_*` lines | No node has reported `device_metrics` yet — wait for telemetry (port 67) or NodeDB refresh |
 
 On bind failure the agent logs `metrics server stopped` at error level with the underlying `address already in use` message.

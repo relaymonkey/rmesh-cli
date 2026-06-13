@@ -26,7 +26,7 @@ func init() {
 	bindConfigSections(observeCmd,
 		sectionIdentity, sectionTransport, sectionForward, sectionSynthesise, sectionLabels, sectionMetrics)
 	bindConfigSections(doctorCmd,
-		sectionIdentity, sectionTransport, sectionMQTT, sectionSynthesise, sectionLabels)
+		sectionIdentity, sectionTransport, sectionMQTT, sectionSynthesise, sectionLabels, sectionMetrics)
 
 	// `-v / --verbose` is scoped to `agent *` so it doesn't collide
 	// with the per-section `-v` flags on `device-config set/edit/copy`

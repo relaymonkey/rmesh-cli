@@ -122,13 +122,13 @@ Optional local `/metrics` for per-node channel utilization and TX airtime gauges
 | Field | Default | Description |
 |---|---|---|
 | `metrics.enabled` | `false` | Expose Prometheus `/metrics` on the agent host |
-| `metrics.listen_addr` | `127.0.0.1:19092` | HTTP bind address (loopback; use `0.0.0.0:19092` for a remote scraper) |
+| `metrics.listen_addr` | `127.0.0.1:9090` | HTTP bind address (loopback; use `0.0.0.0:9090` for a remote scraper) |
 | `metrics.nodedb_refresh_interval` | `0` | NodeDB gauge refresh; `0` inherits `synthesise.nodedb_poll` |
 
 ```bash
 rmesh agent run --metrics-enabled
 rmesh agent observe --metrics-enabled
-rmesh agent run --metrics-enabled --metrics-listen-addr 0.0.0.0:19092
+rmesh agent run --metrics-enabled --metrics-listen-addr 0.0.0.0:9090
 ```
 
 ## Synthesis cadence
@@ -214,6 +214,7 @@ rmesh device config delete --from cloud:mine/<label>      # --yes to skip prompt
 
 # Local agent (local radio → RelayMesh cloud)
 rmesh agent doctor      # validate config, transport, and node database connectivity
+rmesh agent doctor --metrics-enabled   # also verify metrics.listen_addr is free
 rmesh agent observe     # JSONL dry-run, no cloud publish
 rmesh agent run         # production publish
 rmesh agent run --metrics-enabled   # also expose Prometheus /metrics (see metrics.md)

@@ -85,9 +85,16 @@ func TestStartServesMetrics(t *testing.T) {
 		errCh <- metrics.Start(ctx, addr, reg)
 	}()
 
-	resp, err := http.Get("http://" + addr + "/metrics")
+	var resp *http.Response
+	for attempt := 0; attempt < 50; attempt++ {
+		resp, err = http.Get("http://" + addr + "/metrics")
+		if err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("server never became reachable: %v", err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)

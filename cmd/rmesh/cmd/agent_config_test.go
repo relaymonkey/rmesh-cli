@@ -54,6 +54,7 @@ func TestVerbFlagSurfaces(t *testing.T) {
 			mustHave: []string{
 				"agent-id", "transport-url",
 				"mqtt-broker-url", "synthesise-position-interval",
+				"metrics-enabled", "metrics-listen-addr",
 				"label", "set",
 			},
 			// doctor validates connectivity; it never forwards packets, so the
