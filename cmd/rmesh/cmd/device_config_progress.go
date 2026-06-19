@@ -92,6 +92,24 @@ func (r *applyProgress) handle(ev rmdevice.ApplyEvent) {
 		} else {
 			fmt.Fprintln(r.w, "… re-read failed")
 		}
+	case "reconnect_wait":
+		if r.tty {
+			r.startSpinnerLocked("waiting for device to reconnect")
+		} else if ev.Detail != "" {
+			fmt.Fprintf(r.w, "→ waiting for device to reconnect (%s)…\n", ev.Detail)
+		} else {
+			fmt.Fprintln(r.w, "→ waiting for device to reconnect…")
+		}
+	case "reconnect_done":
+		if r.tty {
+			fmt.Fprintln(r.w, "✓ device reconnected")
+		} else {
+			fmt.Fprintln(r.w, "→ device reconnected")
+		}
+	case "notification":
+		// The firmware's own validation message (e.g. an unsupported
+		// region). Surface it verbatim, indented under the section.
+		fmt.Fprintf(r.w, "    ⚠ device: %s\n", ev.Detail)
 	}
 }
 

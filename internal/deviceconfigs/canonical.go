@@ -161,8 +161,20 @@ func (p CanonicalPayload) ExcludeFields(paths []string) CanonicalPayload {
 		case "channels":
 			out.Channels = nil
 		default:
-			// Treat `lora.region` as "drop `region` from `lora`".
+			// Accept the forms the diff / stall output actually shows,
+			// plus bare keys and field paths:
+			//   "lora", "config.lora", "module_config.mqtt"   → drop section
+			//   "lora.region", "config.lora.region"           → drop field
+			// An optional `config.` / `module_config.` group prefix is
+			// stripped first so an operator can paste a section name from
+			// the diff straight into `--exclude`.
 			head, tail := splitFirst(raw, '.')
+			if head == "config" || head == "module_config" {
+				head, tail = splitFirst(tail, '.')
+			}
+			if head == "" {
+				continue
+			}
 			if tail == "" {
 				delete(out.Config, head)
 				delete(out.ModuleConfig, head)

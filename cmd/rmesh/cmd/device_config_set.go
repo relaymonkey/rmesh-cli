@@ -5,17 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/relaymonkey/relaymesh-edge/internal/apiclient"
 	"github.com/relaymonkey/relaymesh-edge/internal/cliui"
-	rmdevice "github.com/relaymonkey/relaymesh-edge/internal/device"
 	"github.com/relaymonkey/relaymesh-edge/internal/deviceconfigs"
-	rmtransport "github.com/relaymonkey/relaymesh-edge/internal/transport"
 )
 
 var setFlags commonFlags
@@ -130,138 +126,6 @@ func applyToDevice(
 	})
 }
 
-// applyPayloadToDevice runs the admin-edit-session apply and
-// surfaces the region-change pre-check. Shared between
-// `set --to device` and `edit --from device`.
-func applyPayloadToDevice(
-	ctx context.Context,
-	cmd *cobra.Command,
-	dst deviceconfigs.Source,
-	payload deviceconfigs.CanonicalPayload,
-	opts applyOptions,
-) error {
-	url, err := resolveDeviceURL(dst.URL)
-	if err != nil {
-		return err
-	}
-	transport, err := rmtransport.Open(url)
-	if err != nil {
-		return fmt.Errorf("open transport %s: %w", url, err)
-	}
-	defer rmtransport.Close(transport)
-
-	// Region safety pre-check.
-	readCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	current, err := rmdevice.GetState(readCtx, transport)
-	if err != nil {
-		return fmt.Errorf("read current device state: %w", err)
-	}
-	currentPayload, _ := rmdevice.ToCanonicalPayload(current)
-	currentHints := deviceconfigs.HintsFromPayload(currentPayload)
-	intendedHints := deviceconfigs.HintsFromPayload(payload)
-	if intendedHints.Region != "" && intendedHints.Region != currentHints.Region && currentHints.Region != "" {
-		if !opts.AllowRegionChange {
-			fmt.Fprintf(cmd.ErrOrStderr(),
-				"error: region change %s → %s would alter regulatory band; pass --allow-region-change to proceed\n",
-				currentHints.Region, intendedHints.Region)
-			// Signal exit code 2 to the cobra wrapper.
-			os.Exit(2)
-		}
-	}
-
-	// Apply-by-diff: only ship admin messages for
-	// submessages that actually need to change. Burning flash on
-	// SetConfig-with-no-delta and reporting "21 sections, 1 drift"
-	// makes operator triage impossible — they can't tell which of
-	// the 21 messages the firmware refused. Filtering down to the
-	// real delta means a non-zero drift afterwards points at the
-	// exact submessage the firmware kept on rejecting.
-	diff := deviceconfigs.Diff(currentPayload, payload)
-	tty := term.IsTerminal(int(os.Stdout.Fd()))
-
-	if opts.DryRun {
-		fmt.Fprintln(cmd.OutOrStdout(), "dry-run — pending changes:")
-		deviceconfigs.RenderDiff(cmd.OutOrStdout(), diff, deviceconfigs.DiffRenderOptions{
-			FromLabel: "device (current)",
-			ToLabel:   "intended",
-			Color:     tty,
-		})
-		return nil
-	}
-
-	if len(diff) == 0 {
-		fmt.Fprintln(cmd.OutOrStdout(), "✓ device matches intended — nothing to apply.")
-		return nil
-	}
-
-	filtered := deviceconfigs.PayloadFromDiff(payload, diff)
-
-	// Apply takes 1..30s depending on how many sections changed and
-	// whether the firmware reboots on commit. Without progress lines
-	// it looks frozen; with them every milestone (per-section ack,
-	// reboot wait, re-read) is visible. Spinner only on TTY — CI
-	// logs stay clean.
-	progressW := cmd.ErrOrStderr()
-	progress := newApplyProgress(progressW, tty, opts.Verbose)
-	defer progress.Close()
-
-	// Print the exact field-level changes about to go on the wire,
-	// so when post-apply drift shows the same field unchanged the
-	// operator can see at a glance the CLI did ship the value — the
-	// firmware just kept the old one. Same renderer as `--dry-run`.
-	fmt.Fprintln(progressW, "applying changes:")
-	deviceconfigs.RenderDiff(progressW, diff, deviceconfigs.DiffRenderOptions{
-		FromLabel: "device (current)",
-		ToLabel:   "intended",
-		Color:     tty,
-	})
-	fmt.Fprintln(progressW)
-
-	res, err := rmdevice.Apply(ctx, transport, filtered, rmdevice.ApplyOptions{
-		RebootWait:    opts.RebootWait,
-		PreApplyState: &currentPayload,
-		OnProgress:    progress.handle,
-	})
-	progress.Close()
-	if err != nil {
-		return fmt.Errorf("apply: %w", err)
-	}
-	rebootMsg := "0 reboot"
-	if res.Rebooted {
-		rebootMsg = "1 reboot"
-	}
-	if res.RereadInconclusive {
-		fmt.Fprintf(cmd.OutOrStdout(),
-			"applied %d sections, %d channels, %s\n",
-			len(res.Sections), res.ChannelsSent, rebootMsg)
-		fmt.Fprintln(cmd.ErrOrStderr(),
-			"warning: drift not verified — the radio returned a partial state on re-read "+
-				"(usually means it's still reconnecting after CommitEditSettings). "+
-				"Run `rmesh device config get` in a moment to confirm.")
-		return nil
-	}
-	fmt.Fprintf(cmd.OutOrStdout(),
-		"applied %d sections, %d channels, %d drift, %s\n",
-		len(res.Sections), res.ChannelsSent, res.DriftCount, rebootMsg)
-	if res.DriftCount > 0 {
-		// Non-zero drift = the device didn't end up where we asked.
-		// Print the actual delta so the operator can see which
-		// submessage the firmware refused (regulatory clamp, missing
-		// session passkey, modem-preset coupling, …) instead of
-		// having to re-read by hand.
-		fmt.Fprintln(cmd.ErrOrStderr(), "\npost-apply drift — firmware did not accept:")
-		deviceconfigs.RenderDiff(cmd.ErrOrStderr(), res.Drift, deviceconfigs.DiffRenderOptions{
-			FromLabel: "intended",
-			ToLabel:   "device (after)",
-			Color:     tty,
-		})
-		// Exit code 1 so scripts can branch on it.
-		return errors.New("post-apply drift detected (see above)")
-	}
-	return nil
-}
-
 // cloudUploadOptions decouples uploadToCloud from any single verb's
 // flag struct; both `set` and `copy` populate this and call
 // the shared helper.
@@ -334,12 +198,12 @@ func init() {
 	f.StringVar(&setFlags.from, "from", "", "Source: device[:url], file:<path>, ./path.yaml, cloud:<network>/<label> (required)")
 	f.StringVar(&setFlags.to, "to", "", "Destination: device[:url] or cloud:<network>[/<label>] (required)")
 	f.StringSliceVar(&setFlags.section, "section", nil, "Comma-separated list of submessage keys to apply (default: all)")
-	f.StringSliceVar(&setFlags.exclude, "exclude", nil, "Comma-separated list of dotted paths to drop (e.g. owner,lora.region)")
+	f.StringSliceVar(&setFlags.exclude, "exclude", nil, "Comma-separated sections or fields to drop, matching the names shown in the diff (e.g. config.lora, lora, lora.region, owner)")
 	f.BoolVar(&setFlags.dryRun, "dry-run", false, "Print the diff that would be applied; do not write to the device")
 	f.BoolVar(&setFlags.allowRegionChange, "allow-region-change", false, "Acknowledge that the apply changes the radio's regulatory region")
 	f.StringVar(&setFlags.label, "label", "", "Label for the new personal cloud config (required when --to cloud)")
 	f.StringVar(&setFlags.description, "description", "", "Optional description stored alongside the cloud config")
-	f.DurationVar(&setFlags.rebootWait, "reboot-wait", 15*time.Second, "How long to wait for FromRadio_Rebooted after CommitEditSettings")
+	f.DurationVar(&setFlags.rebootWait, "reboot-wait", 20*time.Second, "How long to wait for the device to reconnect after a mid-apply reboot")
 	f.BoolVarP(&setFlags.verbose, "verbose", "v", false, "Print the exact SetConfig / SetModuleConfig payload sent to the device for each section")
 	_ = deviceConfigSetCmd.MarkFlagRequired("from")
 	_ = deviceConfigSetCmd.MarkFlagRequired("to")

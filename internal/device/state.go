@@ -47,6 +47,15 @@ type State struct {
 	ModuleAmbientLighting *proto.ModuleConfig_AmbientLightingConfig
 	ModuleDetectionSensor *proto.ModuleConfig_DetectionSensorConfig
 	ModulePaxcounter      *proto.ModuleConfig_PaxcounterConfig
+
+	// Logs holds INFO+ LogRecords the firmware emitted during the sweep
+	// (only populated when the device has security.debug_log_api_enabled).
+	// After a config apply this is where the firmware's handling of the
+	// write shows up — the INFO play-by-play ("Set config: LoRa", region
+	// swaps) and any WARN/ERROR revert/reconfigure reason — none of which
+	// arrive as a ClientNotification. Empty in the common case (logging
+	// off, or no logs in the window).
+	Logs []DeviceNotification
 }
 
 // GetState requests the full device state from the radio. Beyond
@@ -90,6 +99,14 @@ func GetState(ctx context.Context, transport meshtastic.HardwareTransport) (Stat
 			absorbConfig(&state, payload.Config)
 		case *proto.FromRadio_ModuleConfig:
 			absorbModuleConfig(&state, payload.ModuleConfig)
+		case *proto.FromRadio_LogRecord:
+			if lr := payload.LogRecord; lr != nil && lr.Level >= proto.LogRecord_INFO {
+				msg := lr.Message
+				if lr.Source != "" {
+					msg = lr.Source + ": " + msg
+				}
+				state.Logs = append(state.Logs, DeviceNotification{Level: logLevelName(lr.Level), Message: msg})
+			}
 		case *proto.FromRadio_ConfigCompleteId:
 			if payload.ConfigCompleteId == configID {
 				return state, nil

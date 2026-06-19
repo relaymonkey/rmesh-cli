@@ -43,6 +43,8 @@ Update **all** of:
 
 The API field catalog (`GET /messages/fields`) drives dynamic decoded columns in the UI; rmesh tab-completion reads it at runtime. Static defaults above are the fallback when no saved preference / no `--fields` flag.
 
+`relay_node` is available via the column picker / `--fields relay_node`; it is **not** in the default list. Display is 2-digit lowercase hex (Meshtastic Android CSV parity); filter values use the raw byte (`relay_node:eq:77` for `0x4d`). Same for `next_hop`.
+
 ## Related
 
 - Summary column logic mirrors the Traffic UI `summarizeDecoded()` helper.

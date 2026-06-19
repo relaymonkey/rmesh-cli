@@ -45,6 +45,20 @@ type ApplyResult struct {
 	// Drift are not populated and the CLI should print a "drift not
 	// verified" line instead of a confident drift report.
 	RereadInconclusive bool
+	// Notifications carries any `ClientNotification` messages the
+	// firmware emitted while processing this apply — e.g. the exact
+	// reason a section was rejected ("Region EU_868 needs sub-GHz,
+	// which this radio does not support"). The CLI surfaces these
+	// verbatim so a rejected apply shows the device's own words
+	// instead of an inferred cause.
+	Notifications []DeviceNotification
+}
+
+// DeviceNotification is one `ClientNotification` the firmware emitted
+// during an apply (validation warnings/errors, region rejections, …).
+type DeviceNotification struct {
+	Level   string
+	Message string
 }
 
 // ApplyOptions tune the apply session.
@@ -75,6 +89,16 @@ type ApplyOptions struct {
 	// per-section lines, a spinner during the wait windows, etc.
 	// When nil, Apply emits no progress signals.
 	OnProgress func(ApplyEvent)
+	// LocalNodeNum is the connected device's own node number, taken
+	// from the authoritative MyNodeInfo captured during the pre-apply
+	// GetState sweep. Admin packets must be addressed to this node
+	// (`to == my_node_num`) or the firmware won't process them as local
+	// admin — it treats them as mesh traffic for some other node and
+	// silently ignores them locally (no apply, no reboot, no NAK). When
+	// 0, Apply falls back to a best-effort metadata probe, which is
+	// unreliable on a busy mesh (it can latch a neighbor's node number),
+	// so callers should always set this from the read.
+	LocalNodeNum uint32
 }
 
 // ApplyEvent describes one step in the apply state machine. The CLI
@@ -105,31 +129,36 @@ type ApplyEvent struct {
 
 // defaultApplyOptions returns the recommended defaults.
 func defaultApplyOptions() ApplyOptions {
-	return ApplyOptions{RebootWait: 15 * time.Second}
+	return ApplyOptions{RebootWait: 20 * time.Second}
 }
 
-// Apply ships per-section admin messages directly to the connected
-// device — no `BeginEditSettings` / `CommitEditSettings` wrapping.
+// Apply wraps all per-section admin writes in a single
+// `BeginEditSettings` … `CommitEditSettings` transaction — the same
+// protocol the official Meshtastic app and Python CLI use for bulk
+// config.
 //
-// Why no edit transaction:
+// Why the edit transaction (this replaced an earlier per-section,
+// no-transaction approach that could not survive a multi-section apply):
 //
-//   - In firmware (`AdminModule::saveChanges`), when `hasOpenEditTransaction`
-//     is true, the code path that persists *and* fires the
-//     `configChanged` observer is skipped. The new value sits in RAM;
-//     the radio's `reconfigure()` does not run; the result on next
-//     read is racy and version-dependent.
-//   - With NO open transaction, each `handleSetConfig` ends with
-//     `saveChanges(SEGMENT_*, false)`, which calls `service->reloadConfig`,
-//     which fires the `configChanged` observer, which makes
-//     `RadioInterface::applyModemConfig()` actually re-clock the radio
-//     with the new lora settings. This is what `meshtastic --set
-//     lora.tx_power 20` does and it's what makes the value stick.
-//   - For sections that *do* require a reboot (region, role, security),
-//     the firmware schedules one after the per-section save. We watch
-//     for `FromRadio_Rebooted` in a short grace window after each
-//     send and surface it in the progress stream so the operator
-//     sees what's happening and so the post-apply re-read knows the
-//     radio is mid-reconnect.
+//   - While `hasOpenEditTransaction` is true, firmware
+//     (`AdminModule::saveChanges`) *stages* each `Set*` in RAM: it does
+//     not call `service->reloadConfig`, does not fire the `configChanged`
+//     observer, and does not reboot. Crucially, a region / modem-preset
+//     change is therefore NOT applied live mid-stream — so the radio
+//     isn't re-clocked and the USB-CDC / BLE link stays up through every
+//     section. The previous approach applied the first reboot- or
+//     reconfigure-triggering section immediately, dropping the link
+//     before the remaining sections were sent; the apply could never
+//     converge.
+//   - `CommitEditSettings` clears the transaction and runs one
+//     `saveChanges(CONFIG|MODULECONFIG|DEVICESTATE|CHANNELS|NODEDATABASE)`
+//     — a single persist of every staged section — then schedules one
+//     reboot. On reboot the firmware loads the saved config from disk
+//     and `reconfigure()` runs at boot, so the values stick atomically.
+//   - The caller owns reconnect + re-read after the commit reboot (see
+//     cmd/rmesh/cmd/device_config_apply.go); a partial re-read while the
+//     radio is still reconnecting is reported as inconclusive rather than
+//     as drift.
 //
 // MeshPacket framing is deliberately matched to what every working
 // Meshtastic client uses:
@@ -168,17 +197,17 @@ func Apply(
 		}
 	}
 
-	// Address admin packets at the local node's actual node number.
-	// PreApplyState carries a fresh full read; we extract my_node_num
-	// from the saved snapshot so Apply doesn't need a second read.
-	var localNodeNum uint32
-	if opts.PreApplyState != nil {
+	// Address admin packets at the local node's actual node number. The
+	// caller passes the authoritative my_node_num from the GetState read;
+	// only when that's absent do we fall back to the (unreliable) probe.
+	localNodeNum := opts.LocalNodeNum
+	if localNodeNum == 0 && opts.PreApplyState != nil {
 		localNodeNum = preApplyNodeNum(*opts.PreApplyState)
 	}
 	if localNodeNum == 0 {
-		// Defensive: pre-apply might not be populated in some
-		// callers. Probe with a short metadata request — falls back
-		// to to=0 if the device doesn't answer.
+		// Defensive: node number not supplied. Probe with a short
+		// metadata request — unreliable on a busy mesh (can latch a
+		// neighbor's node), falls back to to=0 if the device is silent.
 		localNodeNum = probeLocalNodeNum(ctx, transport)
 	}
 
@@ -203,18 +232,39 @@ func Apply(
 		}
 	}
 
-	// observeReboot watches the FromRadio stream for a short window
-	// after each Set*. If the firmware emits FromRadio_Rebooted, we
-	// surface it via the progress callback and propagate the boolean
-	// to the result so the CLI can render "device rebooting…" and
-	// the re-read can wait until the radio is back. A timeout is the
-	// happy path for sections like lora that apply live.
-	const perSectionRebootGrace = 3 * time.Second
-	observeReboot := func(label string, stage string) {
-		if waitForReboot(ctx, transport, perSectionRebootGrace) {
-			res.Rebooted = true
-			emit(ApplyEvent{Stage: stage, Detail: label})
-		}
+	rebootObserve := opts.RebootWait
+	if rebootObserve <= 0 {
+		rebootObserve = defaultApplyOptions().RebootWait
+	}
+
+	// Open an edit transaction. This is how every working Meshtastic
+	// client (the official app, the Python CLI) applies bulk config:
+	// while `hasOpenEditTransaction` is true the firmware *stages* each
+	// Set* in RAM without saving, without firing the `configChanged`
+	// observer, and without rebooting. That keeps the serial/BLE link
+	// up through every section — critical when one of them is a region
+	// or modem-preset change that would otherwise re-clock the radio
+	// (dropping USB) the instant it was applied live. CommitEditSettings
+	// then persists everything in one shot and reboots once.
+	noteEmit := func(n DeviceNotification) {
+		emit(ApplyEvent{Stage: "notification", Detail: n.Level + ": " + n.Message})
+	}
+
+	// Per-admin-packet ACK budget. Sending the whole surface as one
+	// unpaced burst overruns the firmware's serial RX buffer: later
+	// packets (including CommitEditSettings) are dropped, the transaction
+	// never commits, and the apply silently no-ops. Waiting for each
+	// packet's routing ACK before sending the next paces the stream (the
+	// firmware drains its buffer between packets) and lets a NAK be
+	// attributed to the exact section. On ACK timeout we proceed — pacing
+	// is still achieved and the post-commit observe is a backstop.
+	const ackTimeout = 3 * time.Second
+
+	emit(ApplyEvent{Stage: "send_section", Detail: "begin edit transaction"})
+	if _, err := sendAndAwaitAck(ctx, transport, &proto.AdminMessage{
+		PayloadVariant: &proto.AdminMessage_BeginEditSettings{BeginEditSettings: true},
+	}, localNodeNum, "begin edit transaction", ackTimeout, noteEmit); err != nil {
+		return res, fmt.Errorf("begin edit transaction: %w", err)
 	}
 
 	// Send Config.* submessages.
@@ -231,14 +281,15 @@ func Apply(
 			return res, fmt.Errorf("parse config.%s: %w", key, err)
 		}
 		emit(ApplyEvent{Stage: "wire_payload", Detail: "config." + key + ": " + protoJSONOneLine(cfg)})
-		if err := sendAdmin(ctx, transport, &proto.AdminMessage{
+		notes, err := sendAndAwaitAck(ctx, transport, &proto.AdminMessage{
 			PayloadVariant: &proto.AdminMessage_SetConfig{SetConfig: cfg},
-		}, localNodeNum); err != nil {
+		}, localNodeNum, "config."+key, ackTimeout, noteEmit)
+		if err != nil {
 			return res, fmt.Errorf("set config.%s: %w", key, err)
 		}
+		res.Notifications = append(res.Notifications, notes...)
 		res.Sections = append(res.Sections, "config."+key)
 		emit(ApplyEvent{Stage: "section_sent", Detail: "config." + key, Index: sectionIdx, Total: totalSections})
-		observeReboot("config."+key, "section_reboot")
 	}
 
 	// Send ModuleConfig.* submessages.
@@ -254,14 +305,15 @@ func Apply(
 			return res, fmt.Errorf("parse module_config.%s: %w", key, err)
 		}
 		emit(ApplyEvent{Stage: "wire_payload", Detail: "module_config." + key + ": " + protoJSONOneLine(mod)})
-		if err := sendAdmin(ctx, transport, &proto.AdminMessage{
+		notes, err := sendAndAwaitAck(ctx, transport, &proto.AdminMessage{
 			PayloadVariant: &proto.AdminMessage_SetModuleConfig{SetModuleConfig: mod},
-		}, localNodeNum); err != nil {
+		}, localNodeNum, "module_config."+key, ackTimeout, noteEmit)
+		if err != nil {
 			return res, fmt.Errorf("set module_config.%s: %w", key, err)
 		}
+		res.Notifications = append(res.Notifications, notes...)
 		res.Sections = append(res.Sections, "module_config."+key)
 		emit(ApplyEvent{Stage: "section_sent", Detail: "module_config." + key, Index: sectionIdx, Total: totalSections})
-		observeReboot("module_config."+key, "section_reboot")
 	}
 
 	// Send Channel rows. Each channel in the canonical payload is a
@@ -282,21 +334,36 @@ func Apply(
 			ch.Index = int32(i)
 		}
 		channelIdx++
-		emit(ApplyEvent{
-			Stage: "send_channel", Detail: fmt.Sprintf("channels[%d]", ch.Index),
-			Index: channelIdx, Total: totalChannels,
-		})
-		if err := sendAdmin(ctx, transport, &proto.AdminMessage{
+		label := fmt.Sprintf("channels[%d]", ch.Index)
+		emit(ApplyEvent{Stage: "send_channel", Detail: label, Index: channelIdx, Total: totalChannels})
+		notes, err := sendAndAwaitAck(ctx, transport, &proto.AdminMessage{
 			PayloadVariant: &proto.AdminMessage_SetChannel{SetChannel: ch},
-		}, localNodeNum); err != nil {
+		}, localNodeNum, label, ackTimeout, noteEmit)
+		if err != nil {
 			return res, fmt.Errorf("set channel %d: %w", ch.Index, err)
 		}
+		res.Notifications = append(res.Notifications, notes...)
 		res.ChannelsSent++
-		emit(ApplyEvent{
-			Stage: "channel_sent", Detail: fmt.Sprintf("channels[%d]", ch.Index),
-			Index: channelIdx, Total: totalChannels,
-		})
-		observeReboot(fmt.Sprintf("channels[%d]", ch.Index), "channel_reboot")
+		emit(ApplyEvent{Stage: "channel_sent", Detail: label, Index: channelIdx, Total: totalChannels})
+	}
+
+	// Commit: firmware clears the transaction, persists CONFIG +
+	// MODULECONFIG + DEVICESTATE + CHANNELS + NODEDATABASE in one write,
+	// and schedules a single reboot (~DEFAULT_REBOOT_SECONDS). After this
+	// the link drops; the caller's reconnect loop waits for the device to
+	// come back and re-reads to verify.
+	emit(ApplyEvent{Stage: "send_section", Detail: "commit edit transaction"})
+	commitID, err := sendAdmin(ctx, transport, &proto.AdminMessage{
+		PayloadVariant: &proto.AdminMessage_CommitEditSettings{CommitEditSettings: true},
+	}, localNodeNum)
+	if err != nil {
+		return res, fmt.Errorf("commit edit transaction: %w", err)
+	}
+	rebooted, notes := observeCommit(ctx, transport, rebootObserve, map[uint32]string{commitID: "commit edit transaction"}, noteEmit)
+	res.Notifications = append(res.Notifications, notes...)
+	if rebooted {
+		res.Rebooted = true
+		emit(ApplyEvent{Stage: "section_reboot", Detail: "commit"})
 	}
 
 	if !opts.SkipReread {
@@ -305,10 +372,23 @@ func Apply(
 		defer cancel()
 		after, err := GetState(readCtx, transport)
 		if err != nil {
+			// The commit reboot is tearing the link down. We have not
+			// verified the result, so mark it inconclusive — the caller
+			// reconnects and re-reads on the next pass rather than
+			// reporting an unverified success.
+			res.RereadInconclusive = true
 			emit(ApplyEvent{Stage: "reread_failed", Detail: err.Error()})
 		} else {
+			// Surface any WARN+ firmware logs seen during the re-read —
+			// e.g. a boot-time radio reconfigure failure that reverted the
+			// config. These are logged, never sent as a ClientNotification.
+			for _, n := range after.Logs {
+				res.Notifications = append(res.Notifications, n)
+				emit(ApplyEvent{Stage: "notification", Detail: n.Level + ": " + n.Message})
+			}
 			actual, err := ToCanonicalPayload(after)
 			if err != nil {
+				res.RereadInconclusive = true
 				emit(ApplyEvent{Stage: "reread_failed", Detail: err.Error()})
 			} else if isRereadInconclusive(actual, opts.PreApplyState) {
 				// The radio came back to us with a partial state
@@ -400,7 +480,7 @@ func probeLocalNodeNum(ctx context.Context, transport meshtastic.HardwareTranspo
 	reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	if err := sendAdmin(reqCtx, transport, &proto.AdminMessage{
+	if _, err := sendAdmin(reqCtx, transport, &proto.AdminMessage{
 		PayloadVariant: &proto.AdminMessage_GetDeviceMetadataRequest{
 			GetDeviceMetadataRequest: true,
 		},
@@ -437,11 +517,12 @@ func probeLocalNodeNum(ctx context.Context, transport meshtastic.HardwareTranspo
 // to AdminModule. Without it we couldn't tell a silently-dropped
 // write from one that reached the handler — exactly the ambiguity
 // the user-facing "applied N sections, K drift" line was muddling.
-func sendAdmin(ctx context.Context, transport meshtastic.HardwareTransport, msg *proto.AdminMessage, localNodeNum uint32) error {
+func sendAdmin(ctx context.Context, transport meshtastic.HardwareTransport, msg *proto.AdminMessage, localNodeNum uint32) (uint32, error) {
 	payload, err := gproto.Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("marshal admin: %w", err)
+		return 0, fmt.Errorf("marshal admin: %w", err)
 	}
+	id := rand.Uint32()
 	pkt := &proto.MeshPacket{
 		To: localNodeNum,
 		PayloadVariant: &proto.MeshPacket_Decoded{
@@ -450,13 +531,129 @@ func sendAdmin(ctx context.Context, transport meshtastic.HardwareTransport, msg 
 				Payload: payload,
 			},
 		},
-		Id:       rand.Uint32(),
+		Id:       id,
 		WantAck:  true,
 		HopLimit: 0,
 	}
-	return transport.SendToRadio(ctx, &proto.ToRadio{
+	return id, transport.SendToRadio(ctx, &proto.ToRadio{
 		PayloadVariant: &proto.ToRadio_Packet{Packet: pkt},
 	})
+}
+
+// PrimeRegion crosses the LoRa band (2.4 GHz ↔ sub-GHz) on a dual-band radio
+// (LR11x0), the one change the radio won't make on a live transactional apply.
+//
+// It mirrors exactly what `meshtastic --set lora.region <R> --set lora.use_preset true`
+// does (captured from its debug log): a get-modify-set — take the device's
+// CURRENT lora, change only `region` and `use_preset=true`, and send it as a
+// single standalone SetConfig (no edit transaction, no explicit reboot; the
+// device reboots itself onto the new band). Keeping the current `modem_preset`
+// is essential: it's already valid for the radio, whereas substituting the
+// target profile's preset (e.g. LONG_SLOW) can be invalid for the new region
+// and the firmware reverts. After this, the caller applies the full intended
+// config (including any custom `use_preset=false` lora) within the new band.
+//
+// `currentLoRa` is the device's current lora submessage (canonical protojson);
+// `region` is the target region name (e.g. "EU_868").
+func PrimeRegion(ctx context.Context, transport meshtastic.HardwareTransport, currentLoRa json.RawMessage, region string, localNodeNum uint32) error {
+	code, ok := proto.Config_LoRaConfig_RegionCode_value[region]
+	if !ok {
+		return fmt.Errorf("unknown LoRa region %q", region)
+	}
+	lora := &proto.Config_LoRaConfig{}
+	if len(currentLoRa) > 0 {
+		if err := unmarshalOpts.Unmarshal(currentLoRa, lora); err != nil {
+			return fmt.Errorf("parse current lora: %w", err)
+		}
+	}
+	// Change only region + use_preset; keep every other current field so the
+	// preset config stays valid for the radio (the get-modify-set meshtastic does).
+	lora.Region = proto.Config_LoRaConfig_RegionCode(code)
+	lora.UsePreset = true
+	if _, err := sendAdmin(ctx, transport, &proto.AdminMessage{
+		PayloadVariant: &proto.AdminMessage_SetConfig{
+			SetConfig: &proto.Config{PayloadVariant: &proto.Config_Lora{Lora: lora}},
+		},
+	}, localNodeNum); err != nil {
+		return fmt.Errorf("set region: %w", err)
+	}
+	return nil
+}
+
+// Reboot asks the device to reboot in `seconds`. The apply path uses it to
+// force a reboot for changes the firmware only applies at boot (a within-band
+// lora change that fails a live reconfigure), rather than relying on the
+// firmware's own fault-reset to fire.
+func Reboot(ctx context.Context, transport meshtastic.HardwareTransport, localNodeNum uint32, seconds int32) error {
+	_, err := sendAdmin(ctx, transport, &proto.AdminMessage{
+		PayloadVariant: &proto.AdminMessage_RebootSeconds{RebootSeconds: seconds},
+	}, localNodeNum)
+	return err
+}
+
+// sendAndAwaitAck sends one admin message and blocks until its routing
+// ACK/NAK (correlated by packet id) arrives or `timeout` elapses, then
+// returns. This is deliberate flow control: a Meshtastic radio cannot
+// absorb the whole config surface as one unpaced burst over serial
+// (its RX buffer overruns and later packets — including the commit —
+// are silently dropped), so we send one packet at a time and wait for
+// the firmware to acknowledge it before sending the next, exactly as
+// the official clients do.
+//
+// While waiting it captures any device-reported condition (a NAK for
+// this packet, or a ClientNotification emitted during processing) via
+// packetToNotification and forwards it to onNote. On timeout it returns
+// no error — the firmware may simply not ack a given message; the wait
+// still paced the stream, and the post-commit observe is a backstop.
+func sendAndAwaitAck(
+	ctx context.Context,
+	transport meshtastic.HardwareTransport,
+	msg *proto.AdminMessage,
+	localNodeNum uint32,
+	label string,
+	timeout time.Duration,
+	onNote func(DeviceNotification),
+) ([]DeviceNotification, error) {
+	id, err := sendAdmin(ctx, transport, msg, localNodeNum)
+	if err != nil {
+		return nil, err
+	}
+	ids := map[uint32]string{id: label}
+	var notes []DeviceNotification
+
+	deadline, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	for {
+		pkt, rerr := transport.ReceiveFromRadio(deadline)
+		if rerr != nil {
+			return notes, nil // ack timed out — proceed; the wait still paced the send
+		}
+		if n, ok := packetToNotification(pkt, ids); ok {
+			notes = append(notes, n)
+			if onNote != nil {
+				onNote(n)
+			}
+		}
+		if isRoutingResponseFor(pkt, id) {
+			// The routing ACK can arrive just before the firmware's
+			// ClientNotification for the same write, so don't return the
+			// instant we see it — drain a short trailing window for a
+			// notification that follows the ack.
+			notes = append(notes, drainNotifications(ctx, transport, 400*time.Millisecond, ids, onNote)...)
+			return notes, nil
+		}
+	}
+}
+
+// isRoutingResponseFor reports whether pkt is the ROUTING_APP ack/nak the
+// firmware sent in response to the admin packet with the given id.
+func isRoutingResponseFor(pkt *proto.FromRadio, id uint32) bool {
+	mp, ok := pkt.PayloadVariant.(*proto.FromRadio_Packet)
+	if !ok {
+		return false
+	}
+	d := mp.Packet.GetDecoded()
+	return d != nil && d.GetPortnum() == proto.PortNum_ROUTING_APP && d.GetRequestId() == id
 }
 
 // waitForReboot blocks until a `FromRadio_Rebooted` packet arrives,
@@ -480,10 +677,110 @@ func sendAdmin(ctx context.Context, transport meshtastic.HardwareTransport, msg 
 //     (timeout — covers the rare case where the firmware emits other
 //     packets before the actual Rebooted, or USB drops the link).
 func waitForReboot(ctx context.Context, transport meshtastic.HardwareTransport, wait time.Duration) bool {
+	rebooted, _ := observeCommit(ctx, transport, wait, nil, nil)
+	return rebooted
+}
+
+// packetToNotification turns a FromRadio packet into an operator-facing
+// notification when it carries a device-reported condition: either a
+// `ClientNotification` (firmware validation warning/error) or a Routing
+// NAK (allocErrorResponse) acking one of our admin packets with a
+// non-NONE error. `sentIDs` maps admin packet ids → section labels so a
+// NAK names the section the firmware rejected. Returns ok=false for
+// anything else (live packets, plain ACKs, …).
+func packetToNotification(pkt *proto.FromRadio, sentIDs map[uint32]string) (DeviceNotification, bool) {
+	switch v := pkt.PayloadVariant.(type) {
+	case *proto.FromRadio_ClientNotification:
+		if v.ClientNotification == nil {
+			return DeviceNotification{}, false
+		}
+		return DeviceNotification{
+			Level:   logLevelName(v.ClientNotification.Level),
+			Message: v.ClientNotification.Message,
+		}, true
+	case *proto.FromRadio_LogRecord:
+		// The firmware's own debug log. Surface WARN/ERROR/CRITICAL lines
+		// only — these carry the real reason a config write was rejected,
+		// clamped, or failed to reconfigure ("Channel number invalid for
+		// EU_868", "Invalid LoRa config", "Reconfigure failed, rebooting",
+		// …), which the admin-layer ClientNotification / Routing channels
+		// don't always relay. INFO/DEBUG/TRACE are dropped as noise.
+		lr := v.LogRecord
+		// INFO and above: the firmware narrates config handling at INFO
+		// ("Set config: LoRa", region swaps, initRegion), which is what
+		// explains a config that reverts without a validation error.
+		// DEBUG/TRACE are dropped as noise. Only emitted at all when the
+		// device has security.debug_log_api_enabled set.
+		if lr == nil || lr.Level < proto.LogRecord_INFO {
+			return DeviceNotification{}, false
+		}
+		msg := lr.Message
+		if lr.Source != "" {
+			msg = lr.Source + ": " + msg
+		}
+		return DeviceNotification{Level: logLevelName(lr.Level), Message: msg}, true
+	case *proto.FromRadio_Packet:
+		d := v.Packet.GetDecoded()
+		if d == nil || d.GetPortnum() != proto.PortNum_ROUTING_APP {
+			return DeviceNotification{}, false
+		}
+		var routing proto.Routing
+		if err := gproto.Unmarshal(d.GetPayload(), &routing); err != nil {
+			return DeviceNotification{}, false
+		}
+		if routing.GetErrorReason() == proto.Routing_NONE {
+			return DeviceNotification{}, false // plain ACK
+		}
+		label, ours := sentIDs[d.GetRequestId()]
+		if !ours {
+			return DeviceNotification{}, false
+		}
+		name := proto.Routing_Error_name[int32(routing.GetErrorReason())]
+		if name == "" {
+			name = fmt.Sprintf("error %d", routing.GetErrorReason())
+		}
+		return DeviceNotification{
+			Level:   "error",
+			Message: fmt.Sprintf("%s rejected by firmware (%s)", label, name),
+		}, true
+	}
+	return DeviceNotification{}, false
+}
+
+// observeCommit reads the FromRadio stream after CommitEditSettings,
+// returning whether the firmware rebooted and any ClientNotification
+// messages it emitted while validating the staged sections. Those
+// notifications are the device's own rejection reasons (e.g. an
+// unsupported region), captured so the CLI can show them verbatim
+// rather than guessing.
+//
+// It stops at the first of: a FromRadio_Rebooted, `wait` elapsing, or
+// an initial grace window passing in silence (the firmware isn't
+// talking, so no reboot is coming and the buffered notifications, if
+// any, have already been drained).
+func observeCommit(
+	ctx context.Context,
+	transport meshtastic.HardwareTransport,
+	wait time.Duration,
+	sentIDs map[uint32]string,
+	onNote func(DeviceNotification),
+) (bool, []DeviceNotification) {
 	const grace = 3 * time.Second
 	graceWindow := grace
 	if graceWindow > wait {
 		graceWindow = wait
+	}
+
+	var notes []DeviceNotification
+	collect := func(pkt *proto.FromRadio) {
+		n, ok := packetToNotification(pkt, sentIDs)
+		if !ok {
+			return
+		}
+		notes = append(notes, n)
+		if onNote != nil {
+			onNote(n)
+		}
 	}
 
 	graceCtx, gCancel := context.WithTimeout(ctx, graceWindow)
@@ -491,28 +788,88 @@ func waitForReboot(ctx context.Context, transport meshtastic.HardwareTransport, 
 	gCancel()
 	if err != nil {
 		// Grace window elapsed in silence → no reboot is coming.
-		return false
+		return false, notes
 	}
+	collect(first)
 	if _, ok := first.PayloadVariant.(*proto.FromRadio_Rebooted); ok {
-		return true
+		return true, notes
 	}
-	// Got *some* packet. The firmware is talking — keep an ear on the
-	// stream up to the full wait in case Rebooted arrives behind a
-	// few telemetry / position packets.
+	// Firmware is talking — keep reading up to the full wait so a
+	// Rebooted (or a notification) arriving behind a few telemetry /
+	// position packets is still seen.
 	remainder := wait - graceWindow
 	if remainder <= 0 {
-		return false
+		return false, notes
 	}
 	deadline, cancel := context.WithTimeout(ctx, remainder)
 	defer cancel()
 	for {
 		packet, err := transport.ReceiveFromRadio(deadline)
 		if err != nil {
-			return false
+			return false, notes
 		}
+		collect(packet)
 		if _, ok := packet.PayloadVariant.(*proto.FromRadio_Rebooted); ok {
-			return true
+			return true, notes
 		}
+	}
+}
+
+// drainNotifications reads the FromRadio stream for up to `window`,
+// collecting device-reported conditions (ClientNotifications and Routing
+// NAKs for our admin packets, via packetToNotification) and discarding
+// everything else. Used after staging Set* messages but before
+// CommitEditSettings, while the link is still up, so firmware rejections
+// (unsupported region, invalid params) are captured reliably instead of
+// being lost to the commit reboot's USB teardown.
+//
+// It reads until the window elapses (a transport read timeout / silence
+// returns an error, which ends the drain). Non-notification packets in
+// the buffer are skipped.
+func drainNotifications(
+	ctx context.Context,
+	transport meshtastic.HardwareTransport,
+	window time.Duration,
+	sentIDs map[uint32]string,
+	onNote func(DeviceNotification),
+) []DeviceNotification {
+	var notes []DeviceNotification
+	deadline, cancel := context.WithTimeout(ctx, window)
+	defer cancel()
+	for {
+		pkt, err := transport.ReceiveFromRadio(deadline)
+		if err != nil {
+			return notes
+		}
+		n, ok := packetToNotification(pkt, sentIDs)
+		if !ok {
+			continue
+		}
+		notes = append(notes, n)
+		if onNote != nil {
+			onNote(n)
+		}
+	}
+}
+
+// logLevelName maps the firmware LogRecord_Level enum to a short label
+// for operator-facing notification lines.
+func logLevelName(l proto.LogRecord_Level) string {
+	switch l {
+	case proto.LogRecord_CRITICAL:
+		return "critical"
+	case proto.LogRecord_ERROR:
+		return "error"
+	case proto.LogRecord_WARNING:
+		return "warning"
+	case proto.LogRecord_INFO:
+		return "info"
+	case proto.LogRecord_DEBUG:
+		return "debug"
+	case proto.LogRecord_TRACE:
+		return "trace"
+	default:
+		return "info"
 	}
 }
 

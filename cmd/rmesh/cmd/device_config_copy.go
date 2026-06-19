@@ -68,11 +68,12 @@ PSK / admin-key / MQTT-password fields are read in the clear from the
 source so the destination receives a usable payload. For redacted
 inspection use ` + "`rmesh device config show`" + ` instead.
 
-Applying to a device wraps every Set* admin message in a single
-BeginEditSettings / CommitEditSettings session so the firmware reboots
-at most once. When the source payload's ` + "`lora.region`" + `
-differs from the device's currently reported region, the apply refuses
-unless ` + "`--allow-region-change`" + ` is passed.`,
+Applying to a device sends one admin message per changed section. When the
+firmware reboots mid-apply (common) or the USB port drops, rmesh waits for
+the device to reconnect (` + "`--reboot-wait`" + `, default 20 s) and resumes with the
+remaining diff. When the source payload's ` + "`lora.region`" + ` differs from the
+device's currently reported region, the apply refuses unless
+` + "`--allow-region-change`" + ` is passed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		src, err := deviceconfigs.ParseSource(copyFlags.from)
 		if err != nil {
@@ -202,12 +203,12 @@ func init() {
 	f.StringVar(&copyFlags.to, "to", "", "Destination: device[:url], cloud:<network>[/<label>], file:<path>, ./path.yaml, or - for stdout (required)")
 	f.StringVarP(&copyFlags.output, "output", "o", "yaml", "Output format for file/stdout destinations: yaml, json, tree")
 	f.StringSliceVar(&copyFlags.section, "section", nil, "Comma-separated list of submessage keys to include (default: all)")
-	f.StringSliceVar(&copyFlags.exclude, "exclude", nil, "Comma-separated list of dotted paths to drop (e.g. owner,lora.region)")
+	f.StringSliceVar(&copyFlags.exclude, "exclude", nil, "Comma-separated sections or fields to drop, matching the names shown in the diff (e.g. config.lora, lora, lora.region, owner)")
 	f.BoolVar(&copyFlags.dryRun, "dry-run", false, "Print what would be transferred; do not write")
 	f.BoolVar(&copyFlags.allowRegionChange, "allow-region-change", false, "Acknowledge that applying to a device changes the radio's regulatory region")
 	f.StringVar(&copyFlags.label, "label", "", "Label for the new personal cloud config (required when --to cloud and the destination has no label tail)")
 	f.StringVar(&copyFlags.description, "description", "", "Optional description stored alongside the cloud config")
-	f.DurationVar(&copyFlags.rebootWait, "reboot-wait", 15*time.Second, "How long to wait for FromRadio_Rebooted after CommitEditSettings (device destinations only)")
+	f.DurationVar(&copyFlags.rebootWait, "reboot-wait", 20*time.Second, "How long to wait for the device to reconnect after a mid-apply reboot (device destinations only)")
 	f.BoolVarP(&copyFlags.verbose, "verbose", "v", false, "Print the exact SetConfig / SetModuleConfig payload sent to the device for each section")
 	_ = deviceConfigCopyCmd.MarkFlagRequired("from")
 	_ = deviceConfigCopyCmd.MarkFlagRequired("to")

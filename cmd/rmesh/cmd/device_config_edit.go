@@ -246,7 +246,7 @@ func init() {
 	f.StringVar(&editFlags.from, "from", "", "Source: device[:url], file:<path>, ./path.yaml, cloud:<network>/<label> (required; also the destination)")
 	f.StringVar(&editFlags.format, "format", "yaml", "Editor buffer format: yaml or json")
 	f.BoolVar(&editFlags.allowRegionChange, "allow-region-change", false, "Acknowledge a regulatory-region change on apply (device only)")
-	f.DurationVar(&editFlags.rebootWait, "reboot-wait", 15*time.Second, "How long to wait for FromRadio_Rebooted after CommitEditSettings (device only)")
+	f.DurationVar(&editFlags.rebootWait, "reboot-wait", 20*time.Second, "How long to wait for the device to reconnect after a mid-apply reboot (device only)")
 	f.BoolVarP(&editFlags.verbose, "verbose", "v", false, "Print the exact SetConfig / SetModuleConfig payload sent to the device for each section (device only)")
 	f.BoolVar(&editFlags.dryRun, "dry-run", false, "Show the diff that would be applied (device) or skip the PATCH (cloud); never write back")
 	_ = deviceConfigEditCmd.MarkFlagRequired("from")

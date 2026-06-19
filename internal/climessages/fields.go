@@ -83,6 +83,18 @@ func FieldValue(m apiclient.MessageEnvelope, field string) string {
 		}
 		return "—"
 	}
+	if field == "relay_node" {
+		if n, ok := m.IntField("relay_node"); ok {
+			return fmt.Sprintf("%02x", n)
+		}
+		return "—"
+	}
+	if field == "next_hop" {
+		if n, ok := m.IntField("next_hop"); ok {
+			return fmt.Sprintf("%02x", n)
+		}
+		return "—"
+	}
 	v, ok := m.At(field)
 	if !ok {
 		return "—"

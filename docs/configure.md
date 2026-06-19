@@ -212,6 +212,14 @@ rmesh device config delete --from cloud:mine/<label>      # --yes to skip prompt
 #   -                         stdout
 # Deprecated aliases: get → show; set → copy; cloud:<n>/mine/<label> → cloud:mine/<label>
 
+### Device apply and reboots
+
+`copy --to device` applies the whole changed surface in a single Meshtastic edit transaction — `BeginEditSettings` → one `SetConfig` / `SetModuleConfig` / `SetChannel` per changed section → `CommitEditSettings` — the same protocol the official Meshtastic app and Python CLI use. While the transaction is open the firmware stages each section without saving, without applying it live, and without rebooting, so the serial/BLE link stays up even through region or modem-preset changes. The commit then persists everything at once and reboots the radio a single time.
+
+After the commit reboot the USB serial port disappears and re-enumerates. `rmesh` detects the drop (`device not configured` on macOS), waits for the port to come back (`--reboot-wait`, default **20 s**), re-reads the radio, and confirms the result; if anything still differs it resumes with the remaining diff (up to a few passes), and aborts with a diagnosis if the firmware keeps reverting a section (no progress across passes). Region changes require `--allow-region-change`. Preview first with `--dry-run`; snapshot with `copy --from device --to ./backup.yaml` before large applies.
+
+**Band changes (e.g. `LORA_24` ↔ `EU_868`) are handled automatically.** Dual-band radios (LR11x0 / LR1120) cannot switch the 2.4 GHz ↔ sub-GHz boundary on a live reconfigure, so when the apply changes `lora.region` across bands, `rmesh` first switches the band with a preset (a standalone region set that reboots the radio onto the new band), then applies the full config — including a custom `use_preset=false` lora — within the band. No manual two-step needed.
+
 # Local agent (local radio → RelayMesh cloud)
 rmesh agent doctor      # validate config, transport, and node database connectivity
 rmesh agent doctor --metrics-enabled   # also verify metrics.listen_addr is free
