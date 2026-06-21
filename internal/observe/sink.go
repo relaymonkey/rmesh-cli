@@ -1,12 +1,14 @@
 package observe
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"time"
 
 	"github.com/exepirit/meshtastic-go/pkg/meshtastic/proto"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 // Sink prints envelopes to a writer for dry-run validation.
@@ -35,6 +37,10 @@ type Event struct {
 	// Dropped is the reason a passthrough packet would not be published
 	// (currently only "ok_to_mqtt"). Empty when the packet is forwarded.
 	Dropped string `json:"dropped,omitempty"`
+	// MeshPacketB64 is the serialised meshtastic.MeshPacket protobuf
+	// (standard base64). Consumed by `rmesh decode` for local payload
+	// inspection without cloud ingest.
+	MeshPacketB64 string `json:"mesh_packet_b64,omitempty"`
 }
 
 // Write logs one envelope observation as JSONL.
@@ -46,6 +52,18 @@ func (s *Sink) Write(ev Event) error {
 	}
 	_, err = fmt.Fprintf(s.out, "%s\n", b)
 	return err
+}
+
+// MeshPacketB64 encodes a MeshPacket for observe JSONL / rmesh decode.
+func MeshPacketB64(packet *proto.MeshPacket) string {
+	if packet == nil {
+		return ""
+	}
+	b, err := protobuf.Marshal(packet)
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(b)
 }
 
 // Portnum extracts the application port from a mesh packet when decoded.

@@ -235,17 +235,18 @@ func (a *runtime) handlePacket(ctx context.Context, packet *proto.MeshPacket, sy
 			dropReason = "ok_to_mqtt"
 		}
 		return a.sink.Write(observe.Event{
-			Kind:         "packet",
-			IngestSource: source,
-			IngestLabels: a.cfg.Labels,
-			Topic:        topic,
-			GatewayID:    a.gatewayID,
-			From:         packet.GetFrom(),
-			To:           packet.GetTo(),
-			PacketID:     packet.GetId(),
-			Portnum:      observe.Portnum(packet),
-			Synthetic:    synthetic,
-			Dropped:      dropReason,
+			Kind:          "packet",
+			IngestSource:  source,
+			IngestLabels:  a.cfg.Labels,
+			Topic:         topic,
+			GatewayID:     a.gatewayID,
+			From:          packet.GetFrom(),
+			To:            packet.GetTo(),
+			PacketID:      packet.GetId(),
+			Portnum:       observe.Portnum(packet),
+			MeshPacketB64: observe.MeshPacketB64(packet),
+			Synthetic:     synthetic,
+			Dropped:       dropReason,
 		})
 	}
 

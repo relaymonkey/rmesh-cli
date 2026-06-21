@@ -223,7 +223,10 @@ After the commit reboot the USB serial port disappears and re-enumerates. `rmesh
 # Local agent (local radio → RelayMesh cloud)
 rmesh agent doctor      # validate config, transport, and node database connectivity
 rmesh agent doctor --metrics-enabled   # also verify metrics.listen_addr is free
-rmesh agent observe     # JSONL dry-run, no cloud publish
+rmesh agent observe     # JSONL dry-run, no cloud publish (includes mesh_packet_b64)
+rmesh agent observe | rmesh decode              # local decode (default PSK AQ==)
+rmesh agent observe | rmesh decode --psk Ag==     # alternate channel key
+rmesh agent observe | rmesh decode --strip | jq 'select(.portnum == 71)'   # neighbor info
 rmesh agent run         # production publish
 rmesh agent run --metrics-enabled   # also expose Prometheus /metrics (see metrics.md)
 rmesh agent pair        # requires auth; cloud pairing API stub
