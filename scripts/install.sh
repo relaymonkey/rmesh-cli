@@ -94,7 +94,8 @@ install_binary() {
   url="${GITHUB}/${REPO}/releases/download/${tag}/${artifact}"
 
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "${tmpdir}"' EXIT
+  # Bake the path into the trap — local tmpdir is out of scope when EXIT runs.
+  trap "rm -rf $(printf '%q' "${tmpdir}")" EXIT
   archive="${tmpdir}/${artifact}"
 
   printf 'Downloading %s\n' "${url}"
